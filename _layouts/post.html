@@ -7,10 +7,13 @@ page_name: blog
     {{ content }}
 </div>
 
-<small class="meta">Posted {{ page.date | date:"%B %d, %Y" }}</small>
+<small class="meta">
+  <hr>
+  Posted by {{ site.master }}, {{ page.date | date:"%Y/%m/%d" }}
+</small>
 
 <div id="comments">
-  <h3>评论：</h3>
+  <h3>评论</h3>
 
       <div id="disqus_thread"></div>
     <script type="text/javascript">

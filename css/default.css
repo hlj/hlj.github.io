@@ -168,6 +168,14 @@ h1 a, h2 a {
   color: white;
 }
 
+#navigation .icons a {
+  border-radius: none;
+  -moz-border-radius: none;
+  -webkit-border-radius: none;
+  padding: 5px 10px;
+  border: none
+}
+
 @media (max-width: 767px) {
   .sidebar.affix {
     position: relative;
@@ -208,4 +216,21 @@ h1 a, h2 a {
     margin-left: 0px;
     border-top: solid 4px;
   }
+}
+
+.post,.meta hr {
+    margin-bottom: 8px;
+    border-top: 1px solid #ccc;
+}
+
+a.icon {
+  text-decoration: none;
+  border: 0px;
+}
+
+.icon-rss {
+  background-image: url(/images/rss.png);
+  background-position: 0px 0px;
+  width:16px;
+  height:16px;
 }
