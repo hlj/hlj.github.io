@@ -1,44 +1,65 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-        <title>{{ page.title }}</title>
-        <meta name="viewport" content="width=device-width">
+<html lang="en">
+<head>
+  <title>Beta CZ - {{ page.title }} </title>
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+  <meta name="verify-v1" content="fI45uNHehVNiO9Dt0Fp7XnsV0Z/ozBTkPoS6RlYAe50=" />
+  <meta name="y_key" content="6c948e75a617b12d" />
+  <meta name='technorati-claim' content='8QN7CWNH8BSJ' />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" media="screen" href="/css/bootstrap.css">
+  <link rel="stylesheet" type="text/css" href="/css/default.css" />
+  <link rel="stylesheet" type="text/css" href="/css/syntax.css" />
+  <link href="/atom.xml" type="application/atom+xml" rel="alternate" title="Beta CZ's blog" />
+</head>
 
-        <!-- syntax highlighting CSS -->
-        <link rel="stylesheet" href="/css/syntax.css">
+<body class='{{ page.page_name }}'>
+  <div class="container">
+    <div class="row">
+      <div class="span4 sidebar affix">
+        <div class="well">
+          <h2 class='site-title'>
+            <a href="{{ site.production_url }}">Beta CZ</a>
+          </h2>
 
-        <!-- Custom CSS -->
-        <link rel="stylesheet" href="/css/main.css">
+          <p class='sub-title'><i>/* 慢半拍... */</i></p>
 
-    </head>
-    <body>
-
-        <div class="site">
-          <div class="header">
-            <h1 class="title"><a href="/">{{ site.name }}</a></h1>
-            <a class="extra" href="/">home</a>
-          </div>
-
-          {{ content }}
-
-          <div class="footer">
-            <div class="contact">
-              <p>
-                Your Name<br />
-                What You Are<br />
-                you@example.com
-              </p>
-            </div>
-            <div class="contact">
-              <p>
-                <a href="https://github.com/yourusername">github.com/yourusername</a><br />
-                <a href="https://twitter.com/yourusername">twitter.com/yourusername</a><br />
-              </p>
-            </div>
-          </div>
+          <ul id="navigation" class="clearfix">
+            <li class='home'><a href='/'>文章</a></li>
+            <li class='categories'><a href='/categories/'>分类</a></li>
+            <li class='subject'><a href='/archives/'>专题</a></li>
+            <li class='archives'><a href='/archives/'>归档</a></li>
+            <li class='about'><a href='/about/'>关于</a></li>
+          </ul>
         </div>
+      </div>
+      <div class="span8 main offset4">
+        <div class="well">
+          {{ content }}
+        </div>
+      </div>
 
-    </body>
+    </div>
+  </div>
+
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script src="/javascripts/bootstrap.min.js"></script>
+
+  <!-- Google Analytics Code -->
+  <script type="text/javascript">
+
+    // var _gaq = _gaq || [];
+    // _gaq.push(['_setAccount', 'UA-9947336-1']);
+    // _gaq.push(['_trackPageview']);
+    //
+    // (function() {
+    //   var ga = document.createElement('script');
+    //   ga.src = ('https:' == document.location.protocol ? 'https://ssl' :
+    //       'http://www') + '.google-analytics.com/ga.js';
+    //   ga.setAttribute('async', 'true');
+    //   document.documentElement.firstChild.appendChild(ga);
+    // })();
+
+  </script>
+</body>
 </html>

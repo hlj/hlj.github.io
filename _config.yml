@@ -1,5 +1,5 @@
-name: 挥乱剑
-markdown: redcarpet
-pygments: true
-timezone: Asia/Shanghai
-lsi: true
+permalink: pretty
+paginate: 10
+exclude: ['Rakefile', 'Gemfile', 'Gemfile.lock', 'config.rb', 'run']
+
+production_url: http://blog.hlj-tech.com

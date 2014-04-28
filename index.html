@@ -1,13 +1,32 @@
 ---
 layout: default
-title: Your New Jekyll Site
+title: 主页
+page_name: blog
 ---
 
-<div id="home">
-  <h1>Blog Posts</h1>
-  <ul class="posts">
-    {% for post in site.posts %}
-      <li><span>{{ post.date | date_to_string }}</span> &raquo; <a href="{{ post.url }}">{{ post.title }}</a></li>
-    {% endfor %}
-  </ul>
+<div id='index'>
+{% for post in paginator.posts %}
+  <div class="post">
+    <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
+
+    {{ post.content }}
+
+    <small class="meta">{{ post.date | date:"%Y年%m月%d日 " }} | <a href='{{ post.url }}#disqus_thread'>查看评论</a></small>
+  </div>
+{% endfor %}
+</div>
+
+<div class='paging'>
+  {% if paginator.next_page %}
+    <a href='/page{{paginator.next_page}}' class='older'>旧文章</a>
+  {% endif %}
+{% if paginator.previous_page %}
+  {% if paginator.previous_page == 1 %}
+    <a href='/' class='newer'>Newer Posts</a>
+  {% else %}
+    <a href='/page{{paginator.previous_page}}' class='newer'>新文章</a>
+  {% endif %}
+{% endif %}
+
+  <div class='clear'></div>
 </div>
