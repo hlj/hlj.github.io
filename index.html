@@ -1,33 +1,59 @@
 ---
-layout: default
-title: 主页
-page_name: blog
+layout: all
+title: Home
+listing_title: 欢迎来到BetaCZ.com
+page_type: index
 ---
 
-<div id='index'>
-{% for post in paginator.posts %}
-  <div class="post">
-    <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
 
-    {{ post.content }}
-
-    <small class="meta">{{ post.date | date:"%Y年%m月%d日 " }} | <a href='{{ post.url }}#disqus_thread'>查看评论</a></small>
-    <hr>
-  </div>
-{% endfor %}
+{% if paginator.page == 1 %}
 </div>
-
-<div class='paging'>
-  {% if paginator.next_page %}
-    <a href='/page{{paginator.next_page}}' class='older'>旧文章</a>
-  {% endif %}
-{% if paginator.previous_page %}
-  {% if paginator.previous_page == 1 %}
-    <a href='/' class='newer'>Newer Posts</a>
-  {% else %}
-    <a href='/page{{paginator.previous_page}}' class='newer'>新文章</a>
-  {% endif %}
+<div class="heroline">
+	<div class="container"><div class="row">
+		<div class="col-lg-12">
+			<h3 class="homeheader">Beta的烂笔头&nbsp;&nbsp;&nbsp;<small>/* 奈何总是慢半拍... */</small></div>
+		</h3>
+	</div></div>
+	<div class="container herocontainer">
+		<div class="row">
+			{% for post in paginator.posts limit:3 %}
+				<div class="col-lg-4">
+					<h3 class="entry-title"><a href="{{post.url}}">{{post.title}}</a></h3>
+					<p class="post-date">{{post.date | date: "%Y-%m-%d"}}</p>
+					<p>{{post.summary}}</p>
+				</div>
+			{% endfor %}
+		</div>
+		<div class="row visible-lg">
+			{% for post in paginator.posts limit:3 %}
+				<div class="col-lg-4">
+					<a href="{{post.url}}" class="btn btn-primary btn-block btn-large">阅读 &rarr;</a>
+				</div>
+			{% endfor %}
+		</div>
+	</div>
+</div>
+<div class="container">
+	<div class="row">
+		<div class="col-lg-12">
+			<h3>更多文章</h3>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-12" id="content">
+		{% for post in paginator.posts offset:3 %}
+			{% include post_row.html %}
+		{% endfor %}
+{% else %}
+	<div class="row">
+		<div class="col-lg-12" id="content">
+		<h2>BetaCZ.com - 网页 {{ paginator.page }}</h2>
+		{% for post in paginator.posts %}
+			{% include post_row.html %}
+		{% endfor %}
 {% endif %}
 
-  <div class='clear'></div>
-</div>
+			{% capture paging_root %}/{% endcapture %}
+			{% include paging_buttons.html %}
+		</div>
+	</div>

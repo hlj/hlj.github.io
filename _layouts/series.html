@@ -1,0 +1,14 @@
+---
+title: 专题
+layout: page
+---
+
+<div class="row">
+  <ul>
+  {% for s in page.series %}
+    <li>
+      <a href="/series/{{s[0]}}/"><h3>{{s[0]}} <span class="badge">{{s[1]}}</span></h3></a>
+    </li>
+  {% endfor %}
+  </ul>
+</div>

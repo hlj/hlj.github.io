@@ -1,0 +1,10 @@
+---
+layout: main
+---
+<div class="page-header">
+  <h2>'{{page.name}}' 系列</h2>
+</div>
+
+{% for post in page.posts %}
+  {% include post_row.html %}
+{% endfor %}

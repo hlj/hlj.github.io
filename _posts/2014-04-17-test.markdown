@@ -1,9 +1,0 @@
----
-layout: post
-title:  "Test"
-date:   2014-04-17 18:24:49
-categories: jekyll 测试
-tags: tag1
----
-
-This is a test file.

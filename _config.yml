@@ -1,8 +1,6 @@
-permalink: pretty
-markdown: kramdown
 paginate: 10
-exclude: ['Rakefile', 'Gemfile', 'Gemfile.lock', 'config.rb', 'run']
-
-production_url: http://www.betacz.com
-
-master: Beta CZ
+pygments: true
+markdown: kramdown
+permalink: /:year/:month/:day/:title/
+url: http://betacz.com
+exclude: [README.md]

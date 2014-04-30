@@ -1,0 +1,23 @@
+<div class="post-details">
+	分类:
+		{% if item.categories %}
+			{% for cat in item.categories %}
+				<a href="/category/{{cat}}"><span class="label">{{cat}}</span></a>
+			{% endfor %}
+		{% else %}
+			None
+		{% endif %}
+	|
+	标签:
+		{% if item.tags %}
+			{% for tag in item.tags %}
+				<a href="/tag/{{tag}}"><span class="label">{{tag}}</span></a>
+			{% endfor %}
+		{% else %}
+			None
+		{% endif %}
+	|
+	<a href="http://betacz.com{{item.url}}"><span class="label label-info">Permalink</span></a>
+</div>
+
+{% assign item = nil %}
