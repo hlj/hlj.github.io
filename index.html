@@ -12,6 +12,7 @@ page_name: blog
     {{ post.content }}
 
     <small class="meta">{{ post.date | date:"%Y年%m月%d日 " }} | <a href='{{ post.url }}#disqus_thread'>查看评论</a></small>
+    <hr>
   </div>
 {% endfor %}
 </div>

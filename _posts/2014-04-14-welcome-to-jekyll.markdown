@@ -2,7 +2,8 @@
 layout: post
 title:  "欢迎来到 Jekyll!"
 date:   2014-04-14 18:24:49
-categories: jekyll update
+categories: jekyll 测试 新闻
+tags: tag1 tag2
 ---
 
 You'll find this post in your `_posts` directory - edit this post and re-build (or run with the `-w` switch) to see your changes!

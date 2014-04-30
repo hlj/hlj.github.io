@@ -6,4 +6,37 @@ page_name: categories
 
 <h1>分类</h1>
 
-{{site.categories}}
+<div class="tabbable"> <!-- Only required for left/right tabs -->
+  <ul class="nav nav-tabs">
+    {% for category in site.categories %}
+    {% capture name %}{{ category | first}}{% endcapture %}
+    {% if forloop.first %}
+    <li class="active">
+    {% else %}
+    <li>
+    {% endif %}
+      <a href="#{{ name }}" data-toggle="tab"><b>{{ name }}</b></a></li>
+    {% endfor %}
+  </ul>
+
+  <div class="tab-content">
+    {% for category in site.categories %}
+    {% capture name %}{{ category | first}}{% endcapture %}
+    {% if forloop.first %}
+    <div class="tab-pane active" id="{{name}}">
+    {% else %}
+    <div class="tab-pane" id="{{name}}">
+    {% endif %}
+      <ul>
+        {% for posts in category offset:1 %}
+          {% for post in posts %}
+          <li>
+            {{ post.date | date:"%Y-%m-%d " }} » <a href="{{ post.url }}"> {{ post.title }}</a>
+          </li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
+</div>
