@@ -1,6 +1,6 @@
 paginate: 10
 pygments: true
-markdown: kramdown
+markdown: redcarpet
 permalink: /:year/:month/:day/:title/
 url: http://betacz.com
 exclude: [README.md, Gemfile, Gemfile.lock, Rakefile]
