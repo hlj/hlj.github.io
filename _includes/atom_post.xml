@@ -1,7 +1,7 @@
 <item>
   <title>{{ post.title }}</title>
   <link>http://betacz.com{{ post.url }}</link>
-  <author>R.J. Lorimer</author>
+  <author>Beta CZ</author>
   <pubDate>{{ post.date | date_to_xmlschema }}</pubDate>
   <guid>http://betacz.com{{ post.url }}</guid>
   <description><![CDATA[
