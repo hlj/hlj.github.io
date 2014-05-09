@@ -7,7 +7,7 @@ series: Docker实战
 layout: post
 ---
 
-{% assign align='left' %}
+{% assign align='right' %}
 {% assign src='/docker/docker-top-logo.png' %}
 {% include image.html %}
 
