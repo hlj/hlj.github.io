@@ -8,5 +8,5 @@ Beta CZ, 非典型IT人士。无门无派，自学不怠。爱好多而不精，
 
 联系方式:
 
-* Email: [Beta CZ at live.com](mailto:betacz@live.com)
+* Email: [hlj8080@gmail.com](mailto:hlj8080@gmail.com)
 * Find me on [GitHub](https://github.com/hlj)
