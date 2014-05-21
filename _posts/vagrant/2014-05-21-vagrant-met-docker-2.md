@@ -13,45 +13,104 @@ layout: post
 {% assign src='/vagrant/logo_vagrant.png' %}
 {% include image.html %}
 
-使用**Vagrant**来为项目提供统一的开发与测试环境，已成为了许多开发团队的标准流程。Vagrant能够为开发者在本机上提供与生产环境几乎一致的开发环境,也能为使用不同操作系统平台（Linux，MAC OS，Windows）的团队成员提供一致开发体验。
+要使用Vagrant与Docker共同创建一个开发环境，并不是一件容易的事情。特别是在国内这种网络环境中，更是平添了一层难度。官方的演示与文档中，也基本是将Docker provider作为测试或Stage环境来使用，对于创建开发环境时会遇到的问题几乎没有涉及。在本文中，笔者将详细讲述使用Docker provider创建一个完整的Rails开发环境的全过程。对于其它框架或语言的开发者，此过程也基本相似。
 
 {% series_list %}
 
-##背景
+##一、前提
 ----
-相对于Vagrant在开发中的使用，**Docker**则更关注于生产环境的虚拟化。它将应用及其依赖的其它应用，每一个都独立包装成独立自足的容器，其中包括特定的操作系统及其依赖的所有软件，解决了以前在生产部署中困扰我们的诸多难题。因此，自它发布以来，虽然还没有达到官方认为稳定的1.0版本，但还是有越来越多的人使用它来部署自己的应用。
+在阅读本文之前，您需要有一定的Vagrant和Docker的使用经验。在涉及到这两个软件本身的知识时，文中不会作详细解释。
 
-一般来说，我们在Vagrant中会使用VirtualBox等传统的虚拟机软件来作为提供者，以创建一个与生产环境相同的开发机器。这样，我们在开发阶段就可以遇到并解决很多与生产环境相关的问题。然而，随着Docker的异军突起，这种方式开始变得尴尬，因为我们发现开发环境已经不能匹配生产环境了: 在开发时，程序使用本机的网络，与数据库直接通过本机端口连接，直接访问着主机的文件系统和其它资源并与其它程序共享这些资源；在生产中，程序则在Docker容器中运行，通过桥接网络与外界通信，与数据库通于Docker link方式进行连接，通过映射或数据容器访问主机资源且不与其它程序共享。另一方面，我们应用部署过程也与以前有了很大不同：以前我们通过FTP，HTTP或SSH、Git等方式将代码上传至服务器再进行版本切换，应用重启等工作，在此过程中可能还要在生产服务器上进行诸如库文件更新等额外工作。而现在，我们则是将应用直接打包成一个Docker镜像并推送到中心仓库，然后在服务器上下拉并直接启动最新的镜像。
+在您的物理机器上，必须已经安装了下列的软件，并能正常使用：
 
-##解决方案
+* Vagrant >= 1.6.2
+* VirtualBox >= 4.10.0
+* vagrant-vbguest插件 (建议，可选)
+* Docker >= 0.9.0 (仅当Docker原生支持时需要, Mac OS X与Windows用户不可安装)
+
+##二、创建 HOST VM
 ----
-Vagrant的开发者很快意识到了这个问题。
+*注：理论上Linux用户可以跳过此节，但由于团队中很可能有成员使用其它的操作系统，所以还是看一下吧。*
 
-在1.4版本中，Vagrant引入了[Docker Provision](http://docs.vagrantup.com/v2/provisioning/docker.html)。帮助开发者在虚拟机中自动安装Docker软件，并自动启动Docker容器。但此时，Vagrant对Docker的支持还是比较原始的。我们无法通过Vagrant的命令行直接管理Docker容器，也无法绕过虚拟机直接与容器通信。
+对于Docker不能原生支持的平台，如Mac OS X或Windows，Vagrant会自动在后台启动一个host VM来运行Docker。这个host VM，说到底就是一个VirtualBox的虚拟机，Dokcer将安装在这个虚拟机上，所有Vagrant的命令，也会自动转发到这个虚拟机的Docker中。对用户而言，这个过程是透明的，Vagrant将这个VM隐藏在了幕后，使所有平台的用户能获得一致操作界面。
 
-直到1.6版本发布，Vagrant终于引入[Docker provider](http://docs.vagrantup.com/v2/docker/index.html)。至此，Docker才获得了与VirtrualBox，VMWare等传统虚拟机软件相等的地位。我们也才有可能在开发中使用Docker容器来构建与生产环境完全一致的开发测试环境。
+Vagrant自带了一个基于boot2docker的host VM。它具有体积小，速度快，无需配置等优点。但不幸的是，有两个致命的缺点使它在我们的开发环境中完全无法使用：
 
-##优点与不足
+1. 在这个host VM中启动Docker容器时，会自动连接到<index.docker.io>来获取相应的镜像。但由于一堵墙的存在，这是不可能成功的。虽然最终我们可以通过进入这个虚拟机并配置代理来fq，但是这个操作不能自动化，且技术门槛较高，对于一个开箱即用的统一开发环境来说，这是无法接受的。
+2. 这个host VM与物理主机使用的文件夹同步方式是rsync。这意味着这个同步是单向，只能是在物理机上修改的内容同步至虚拟机中。对于测试或模拟生产环境来说，这种同步方式完全可行。但对于开发环境，必须要有双向同步的能力。
+
+为了解决这两个问题，我们需要自己创建一个host VM给Docker provider使用。创建host VM的过程其实很简单。就是用Vagrant创建一个正常的基于VirtualBox的虚拟机，然后在里面安装好Docker软件。为了对付国内的网络情况，我们可以在这个虚拟机fq后，下载好所需的常用Docker镜像。然后重新打包成一个Box即可。其过程不再赘述。
+
+为了节省大家的时间和精力，笔者已经创建好一个host VM: [docker-host-01.box](http://yun.baidu.com/share/link?shareid=566951005&uk=289275890)，您可以直接下载使用。
+
+这个VM的近1G大小，具有如下特性：
+
+* 操作系统为 ubuntu 14.04
+* 时区为 Asia/Shanghai
+* 已安装 Docker 0.11.1
+* 已包含下列Docker Image:
+  * ubuntu:12.04
+  * ubuntu:14.04
+  * phusion/baseimage:0.9.10
+  * busybox
+  * svendowideit/ambassador
+  * dockerfile/redis
+
+##三、创建开发环境
 ----
-使用Docker虚拟机作为开发环境至少有以下几个**好处**：
+在准备好上述的host VM之后，我们就可以正式开始创建Rails开发环境了。我们将创建一系列的目录和文件来配置Vagrant，告诉它应该如何启动Docker容器。我们也将创建一个Dockerfile来自动构建我们的Rails开发容器。
 
-1. 节省磁盘空间： 因为Docker镜像具有共享与缓存机制，同时创建10个基于Ubuntu容器并不会比创建1个多花费多少空间。
-2. 大幅减少内存与CPU占用: 传统虚拟机的明显缺点就是需要消耗大量内存与CPU，哪怕你只是启动了虚拟机，什么事情都不做，内存与CPU与照占不误。而Docker容器则轻量的多，基本上是应用使用多少内存，就占用多少内存，CPU的额外消耗也很少。
-3. 性能提升： 传统虚拟机因为需要虚拟大部分硬件的关系，性能与主机有着较为明显的差距。而Docker则性能则与物理机相当接近。
-4. 可以统一开发与部署环境。前提是你准备以Docker方式部署应用。
+该示例项目的完整内容可以从我的[GitHub项目](https://github.com/hlj/vagrant-docker)中获取。
 
-然而，现实并不完美，Vagrant与Docker的结合并不是天衣无缝，一方面是Docker或Vagrant的问题，另一方面则是因为瓷器国的特色了。问题主要表现在以下几个方面：
+###1. 目录结构
+首先我们来看一下基本的目录结构：
 
-1. Docker目前只能运行在Linux 64bit的环境下，在其它平台上，Vagrant需要使用一个Host虚拟机来提供Docker的运行环境。因此，前面所说第2、3两个优点，对于使用Mac或Windows来开发的同学几乎不存在。
-2. 以目前最新的1.6.2版本的Vagrant来说，其对于Docker provider的支持还有不少[Bug](https://github.com/mitchellh/vagrant/issues?state=open)，需要我们使用较多的"work around"。
-3. 因为伟大的墙存在，Vagrant默认的Docker Host VM基本上在国内处于不可用状态。我们需要自己创建这个虚拟机。
-4. 使用Docker容器作为开发环境，与传统的虚拟机相比也有一些不便之处。
+```
+vagrant-docker/
+|-- Vagrantfile            # 主要的Vagrant配置文件，定义了Docker容器
+|-- docker_host/           # 包含host VM的配置
+|   |-- Vagrantfile        # host VM配置文件
+|-- dockerfiles/           # 包含所有Dockerfile的定义
+|   |-- rails/             # 包含rails容器配置
+|       |-- Dockefile      # rails容器的构建文件
+|       |-- ...
+|-- demo_app/              # rails项目的主目录
+|   |-- ...
+|-- ...
+```
+
+目录结构比较简单。其中`demo_app`中包含了一个正常的rails项目，与其它普通的rails项目没有区别。`docker_host`则定义了host VM的配置。`dockerfiles`则应该包含所有该项目中用到的Docker容器的构建文件。
+
+###2. docker_host/Vagrantfile
+这个文件中定义了host VM。它是基于我们上面所说的docker-host-01.box创建的，文件内容为：
+
+```ruby
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vm.box = "docker-host-01"
+  config.vm.hostname = "dh01"
+
+  # Forward port for rails app
+  config.vm.network "forwarded_port", guest: 3000, host: 3000
+  # Forward port for container's ssh
+  config.vm.network "forwarded_port", guest: 2244, host: 2244
+
+  # Fixed the mapping of the app's folder
+  config.vm.synced_folder "../", "/var/lib/docker_root"
+
+end
+```
+虽然只有短短几行，但里面的后面三行配置却需要好好解释一下。
+
+前面说过，在使用host VM时，Docker容器实际上是运行在这个虚拟机里面的。相当于是盗梦空间里的第二层梦境。在容器中映射至外部的网络端口，
 
 ##小结
 ----
 在本篇中，笔者简要的介绍了Vagrant对Docker的支持情况。下一篇将以搭建一个Rails开发环境为例，介绍Docker provider的使用与技巧。
- 
- 
+
+
 
 ###参考
 * [Feature Preview: Docker-Based Development Environments](https://www.vagrantup.com/blog/feature-preview-vagrant-1-6-docker-dev-environments.html)
