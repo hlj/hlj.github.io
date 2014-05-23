@@ -2,7 +2,7 @@
 	分类:
 		{% if item.categories %}
 			{% for cat in item.categories %}
-				<a href="/category/{{cat}}"><span class="label">{{cat}}</span></a>
+				<a href="/category/{{cat}}"><span class="label label-default">{{cat}}</span></a>
 			{% endfor %}
 		{% else %}
 			None
@@ -11,7 +11,7 @@
 	标签:
 		{% if item.tags %}
 			{% for tag in item.tags %}
-				<a href="/tag/{{tag}}"><span class="label">{{tag}}</span></a>
+				<a href="/tag/{{tag}}"><span class="label label-default">{{tag}}</span></a>
 			{% endfor %}
 		{% else %}
 			None
