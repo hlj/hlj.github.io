@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+   
+   	<title>betacz.com - Tag: Git</title>
+   
+   <link>http://betacz.com</link>
+   <language>zh-cn</language>
+   <managingEditor>Beta CZ</managingEditor>
+   <atom:link href="rss" rel="self" type="application/rss+xml" />
+   
+	<item>
+  <title>Gitolite on Docker</title>
+  <link>http://betacz.com/2014/05/29/docker-gitolite/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-05-29T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/05/29/docker-gitolite/</guid>
+  <description><![CDATA[
+     <p>在公司内部我们有十多个项目用Git作为源代码版本控制工具。因为是内部项目，所以简单在一台内网Linux服务器上创建一个名为git的用户，所有项目成员都通过此用户，使用ssh协议来读写中心代码库。同时，又用nginx架设了一个HTTP服务器，在部署环境提供Git仓库的只读访问。</p>
+
+<p>但是这样做的弊端也很明显，尤其在以下几点方面让人比较头疼：</p>
+
+<ul>
+<li>项目成员有变化时，需要管理员登录到服务器上去手工增加或删除ssh公钥。</li>
+<li>因为所有成员都通过git用户来访问，一旦为某个成员在服务器上增加了公钥，就意味着同时开放了这台服务器所有其它项目的代码。</li>
+<li>只能通过HTTP或SSH协议来提供只读/读写两类权限控制，无法对项目内容进行细粒度的权限控制。</li>
+<li>为一个项目开放HTTP访问需要管理员手工去修改hook。</li>
+</ul>
+
+<p>总之，这种SSH方式虽然简单易行，但在安全性和便利性上却不尽如人意。</p>
+
+<p>Gitolite作为更强大但也更复杂的Git服务器，以前也看到很多人在推荐。但因为需求没那么迫切，一直没有好好研究过。不过最近在做应用的Docker化时，产生了把Git服务器也打包成一个Docker容器的想法。既然要动手，那就干脆直接迁移到Gitolite上吧。</p>
+
+<h2>构建容器</h2>
+
+<hr>
+
+<p>此容器的构建代码可以从我的<a href="https://github.com/hlj/gitolite-docker">Github项目</a>上下载。</p>
+
+<p>项目中包括4个文件，其中唯一需要修改就是<code>admin.pub</code>文件。这个文件的内容应该是您自己使用ssh-keygen产生的公钥文件。您可以直接替换这个文件的内容，也可以完全删除这个文件并用自己的文件代替。如果您不想使用<code>admin.pub</code>这个名称，也可以改成任意名称，但一定要同步修改<code>Dockerfile</code>里的相关内容。</p>
+
+<p>在修改好这个文件后，就可以直接运行构建命令了：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>docker build -t gitolite .
+</code></pre></div>
+<h2>使用</h2>
+
+<hr>
+
+<p><em>注意：这里仅介绍容器本身的使用，Gitolite的使用请自行参考<a href="https://github.com/sitaramc/gitolite#readme">相关手册</a></em></p>
+
+<h3>准备</h3>
+
+<p>在使用这个容器之前，首先要在主机准备一个空目录，用以存储Git仓库的内容。在脚本中默认是使用<code>/opt/git</code>。</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>sudo mkdir -p /opt/git
+<span class="nv">$ </span>sudo chown <span class="nv">$USER</span>:<span class="nv">$USER</span> /opt/git
+</code></pre></div>
+<p>记住一定要把这个目录的读写权限赋给运行容器的用户。</p>
+
+<p>您也可以选择别的目录，但需要同步修改<code>gitolite</code>这个脚本中的相关部分。</p>
+
+<h3>运行</h3>
+
+<p>运行这个容器也很简单,直接用项目中自带的<code>gitolite</code>这个脚本就可以了：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">./gitolite start
+</code></pre></div>
+<p>这个脚本是基于我写的<a href="http://betacz.com/2014/05/29/docker-app-script-template/">Docker应用管理脚本模板</a>制作的，如有需要，也可自行修改。</p>
+
+<h3>测试</h3>
+
+<p>现在，Gitolite服务已经顺利跑起来了，可以测试一下:</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">git clone ssh://git@localhost:22222/testing
+</code></pre></div>
+<p>如果在这一步发生错误，那可能是您改动了<code>gitolite</code>脚本的相关配置，请仔细检查一下。</p>
+
+<h3>额外配置rc文件</h3>
+
+<p>这个Gitolite服务器使用的是默认配置。如果您想自定义一此选项，只需要修改<code>/opt/git/gitolite.rc</code>这个配置文件即可。 这个文件是在首次启动服务器时，从容器内的<code>~/.gitolite.rc</code>文件复制出来的（见<code>start.sh</code>）。</p>
+
+<p>在修改这个文件后，需要重启一下容器才能生效:</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>./gitolite stop <span class="o">&amp;&amp;</span> ./gitolite start
+</code></pre></div>
+<h3>容器被删除了?</h3>
+
+<p>如果容器被删除了（使用<code>docker rm</code>或<code>./gitolite remove</code>)，那么可以用<code>./gitolite start</code>重新启动。但启动完成后，必须要重新推送一下<code>gitolite-admin</code>这个仓库。如下所示：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">~/gitolite-admin<span class="nv">$ </span>git push -f
+</code></pre></div>
+<p>在您把Gitolite迁移到其它主机上时，也需要如此操作。</p>
+
+  ]]></description>
+</item>
+
+
+</channel>
+</rss>

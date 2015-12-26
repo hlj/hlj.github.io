@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+   
+   	<title>betacz.com - Tag: 服务器</title>
+   
+   <link>http://betacz.com</link>
+   <language>zh-cn</language>
+   <managingEditor>Beta CZ</managingEditor>
+   <atom:link href="rss" rel="self" type="application/rss+xml" />
+   
+	<item>
+  <title>Docker实战： 三、基本概念与术语</title>
+  <link>http://betacz.com/2014/05/09/docker-pratices-terms/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-05-09T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/05/09/docker-pratices-terms/</guid>
+  <description><![CDATA[
+     <div class="img thumbnail pull-right">
+    <img src="http://betacz.com/images/articles/docker/docker-top-logo.png" />
+    
+</div>
+
+<p>在前一章中，我们创建了一个Ubuntu虚拟机，并在这个虚拟机上安装了Docker服务器。于是，我们有了一个正在运行着的Docker服务器，还有一个名为docker的命令行客户端用于与Docker服务进行交互。</p>
+
+<p>现在你肯定已经跃跃欲试的想在命令行上输入点什么了。但是请先等一下，在进行下一步实际演练之前，我们还需要搞清楚一些基本的概念。</p>
+
+<div class='panel seriesNote'><p>本文是《<a href='http://betacz.com/series/Docker实战'>Docker实战</a>》系列中的第3篇（共3篇）。</p><ul><li> 前一篇 - <a href='http://betacz.com/2014/05/08/docker-pratices-install/'>Docker实战： 二、安装</a></li></ul></div>
+
+<h2>容器（Container）</h2>
+
+<hr>
+
+<p>Docker自称是一个<strong>容器</strong>引擎。那么这个<strong>“容器”</strong>到底是什么意思呢？</p>
+
+<p>我们知道，Docker最基础的能力就是能将一个应用打包成一个可以独立运行的、便携式的容器。这里“独立”的意思是除Docker自身外没有第三方软件依赖并且与其它容器完全隔离。“便携”的意思则是说容器可以在任何支持Docker的主机上自由的迁移，无论此主机是物理机器还是虚拟机，也无论是哪个Linux发行版本。在多台主机上分发与运行一个打包好的应用就像发动汽车那样简单。</p>
+
+<p>这听起来有些不可思议，因为一个应用的运行环境包括大量的外部依赖。就拿一个最简单的Web应用来说，就包括了指定版本的操作系统、相应语言环境或运行时库(Java、Ruby、PHP...)、数据库及其驱动(Oracle、Mysql、 Mongodb...)、HTTP服务器(Apache、Nginx...)、第三方软件包等等。另外，还需要大量特定的配置，如操作系统用户及组配置、目录权限设置、日志管理、网络端口配置等等。在传统的部署模式中，即使应用了自动配置工具如Puppet、Chef等，要在一台新机器上发布一个应用还是一件费时费力的工作。要是多个应用部署在一台主机上，那各种软件版本冲突、资源分配与协调等工作更是让人头疼。</p>
+
+<p>为了解决这个问题，Docker使用了类似虚拟机的技术，将OS、应用程序及其依赖软件、配置信息等都写入一个镜像（Image）文件. 但与普通虚拟机不同的是，这个Image的文件系统是只读的。也就说，打包一旦完成，那么里面所有内容都不可更改了。</p>
+
+<p>在启动一个镜像时，Docker首先读取这个镜像，然后在其上面再增加一个可读写层。这个可读写层，加上它所有的父镜像和诸如网络配置、唯一编码、内存与cpu限制等附加信息，被称为一个 <strong>容器（Container）</strong>。</p>
+
+<p>从面向对象的角度来看，可以把镜像视为类，容器则是这个类的实例。一个镜像可以产生出多个容器，而一个容器只能基于一个镜像创建。</p>
+
+<h3>容器的状态</h3>
+
+<p>容器具有“running”与&quot;exited&quot;两个状态。</p>
+
+<p>一个处于running状态的容器，除了包含前述的文件系统内容和附加信息外，还包括了所有运行中的进程树。这棵进程树与主机上运行的其它进程是相互隔离的。</p>
+
+<p>当容器内的进程运行结束，或者用户手工停止或杀死这个容器时，容器就处于“exited”状态。所有在容器运行时对文件系统的更改都将被保留，但内存状态将会丢失。我们可以稍后再次启动这个容器。</p>
+
+<h3>容器ID与命名</h3>
+
+<p>每一个容器都有一个唯一的ID，这个ID是一个由64个16进制字符组成的字符串。为了方便在命令中引用，我们一般只需使用前12个字符即可。</p>
+
+<p>为了更加便于记忆与引用，在创建容器时，我们也可以给容器命名，比如给将一个Mongodb容器命名为“mg-server“，或者将一个FTP容器命名为“my-file-server”等等。容器的名称可以随意指定，只要保证在这台主机上是唯一的即可。</p>
+
+<h2>镜像 (Image)</h2>
+
+<hr>
+
+<p>在Docker的术语中，镜像表示一个只读的文件系统层。</p>
+
+<p>Docker使用了一种被称为“联合文件系统 (Union File System)”的技术来创建容器。整个容器被视为拥有一个可读写的文件系统，但实际在内部，所有的修改操作都只是发生在最上面的可读写层，在下层的只读镜像中的原始文件是永远不变的。因为镜像不能被修改，所以它也没有状态。</p>
+
+<h3>父镜像（Parent Image）</h3>
+
+<p>除了基础镜像外，所有其它的镜像都是基于其它一个或多个镜像创建的。这些镜像被称为这个镜像的父镜像。每个镜像实际上只存储了相对于父镜像的变化部分。通过这样的技术，不同的应用容器可以共享相同的父镜像，极大的节约了系统资源。</p>
+
+<h3>基础镜像（Base Image）</h3>
+
+<p>没有任何父镜像的层称为基础镜像。绝大多数基础镜像都是包含了最基本的操作系统的镜像。在docker的中心注册库中包含了大多数流行的Linux发行版本的基础镜像。</p>
+
+<h3>镜像ID</h3>
+
+<p>每一个镜像都有一个唯一的ID，这个ID是一个由64个16进制字符组成的字符串。为了方便在命令中引用，我们一般只需使用前12个字符即可。</p>
+
+<h2>仓库（Repository）</h2>
+
+<hr>
+
+<p>一个仓库代表了一系列镜像的逻辑集合。</p>
+
+<p>为了方便的对镜像进行引用与版本管理，我们一般会把同一类镜像与一个仓库名称关联。在仓库中则使用标签（tag）来指向特定的镜像。</p>
+
+<p>可以把仓库视为某一类镜像的共同名称，而tag则是指向某一具体镜像的指针。</p>
+
+<p>在使用仓库名称引用镜像时，需要指定标签，如果没有给出标签名，则默认为<strong>latest</strong>.</p>
+
+<p>举例来说，假设我们开发了一个名为“new<em>app”的应用并创建了一个当前版本的镜像文件。我们现在可以把这个镜像文件与仓库名称“new</em>app<em>repo”关联(关联方法在下一节说明)。现在这个名为&quot;new</em>app<em>repo&quot;的仓库就保存了这个镜像及其所有父镜像的ID，并且创建了一个名为“latest”的标签，指向最新的那个镜像ID。过了几天，我们发布了new</em>app的新版本程序，并重新创建了最新版本的镜像文件。这时我们可以先把旧的镜像关联至“new<em>app</em>repo:old<em>version”这个标签，然后将新镜像关联至“new</em>app<em>repo:latest”。这样一来，我们的仓库“new</em>app<em>repo”就包含了应用&quot;new</em>app&quot;的所有版本，并且其默认标签“lastest”总是指向最新的应用程序版本。</p>
+
+<p>但在实际上，一个仓库内的镜像并不需要有实际的关联，我们完全可以把属于不同应用的镜像关联至同一个仓库，只是这样做似乎没有什么实际用处。</p>
+
+<h3>关联镜像至仓库名</h3>
+
+<p>目前有三种方法可以将一个镜像与仓库名关联：</p>
+
+<ol>
+<li>在构建时指定，如: docker build -t 镜像名称</li>
+<li>在提交一个容器至镜像时，如： docker commit 容器ID 镜像名称</li>
+<li>在为一个镜像ID打标签时，如： docker tag 镜像ID 镜像名称</li>
+</ol>
+
+<p>这里的镜像名称是指完全限定的镜像名（Fully Qualified Image Name (FQIN) 由三部分组成：</p>
+<div class="highlight"><pre><code class="text language-text" data-lang="text">[registry_hostname[:port]/][user_name/](repository_name[:version_tag])
+[注册库主机名:[端口]]/][用户名/]([仓库名][:版本标签])
+</code></pre></div>
+<p>其中只有仓库名是必须的。注册库默认为<code>index.docker.io:80</code>。 版本标签默认为<code>latest</code>。</p>
+
+<p>如果您创建一个新的仓库并想发布到中心注册库进行分享，那么必须给出用户名，因为默认的&#39;default&#39;用户名是为Docker官方镜像保留的。</p>
+
+<h2>标签（Tag）</h2>
+
+<hr>
+
+<p>标签指向仓库中的某个具体镜像。可以视为镜像在当前仓库中的命名指针。</p>
+
+<h2>注册库（Resgistry）</h2>
+
+<hr>
+
+<p>注册库是一个能响应Registry API的，包含了镜像仓库的托管服务。</p>
+
+<p>默认的注册库位于<a href="https://index.docker.io">https://index.docker.io</a>。这是一个Docker官方创建的公开注册库。任何人都可以在上面发布及下载共享的镜像。 </p>
+
+<p>您也可以创建私有注册库来托管您公司的私有仓库。</p>
+
+<p>注册库的主要作用是进行镜像的分享。我们可以把自己创建的镜像发布到注册库中，也可以从注册库中获取其他人创建的镜像。</p>
+
+  ]]></description>
+</item>
+
+
+	<item>
+  <title>Docker实战： 二、安装</title>
+  <link>http://betacz.com/2014/05/08/docker-pratices-install/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-05-08T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/05/08/docker-pratices-install/</guid>
+  <description><![CDATA[
+     <div class="img thumbnail pull-right">
+    <img src="http://betacz.com/images/articles/docker/docker-top-logo.png" />
+    
+</div>
+
+<p>Docker可以运行在大多数Linux发行版上。但因为它对Linux Kernel版本有一定的要求（3.8以上），所以有些发行版需要自行升级内核。</p>
+
+<p>一般建议在有条件的情况下，尽量选择Ubuntu Server版做为主机，因为Docker官方对Ubuntu的支持最好。</p>
+
+<p>Docker的安装也比较简单，基本上按照<a href="http://docs.docker.io/en/latest/">官方的文档</a>就可以很容易的安装完成。</p>
+
+<p>但在本文中，我们会使用比较特别的方法来安装Docker：<strong>用<a href="http://www.vagrantup.com/">Vagrant</a>来创建和管理Ubuntu虚拟机，并通过<a href="http://puppetlabs.com/">Puppet</a>来安装</strong>。</p>
+
+<div class='panel seriesNote'><p>本文是《<a href='http://betacz.com/series/Docker实战'>Docker实战</a>》系列中的第2篇（共3篇）。</p><ul><li> 前一篇 - <a href='http://betacz.com/2014/04/30/docker-pratices-intro/'>Docker实战： 一、简介</a></li><li> 后一篇 - <a href='http://betacz.com/2014/05/09/docker-pratices-terms/'>Docker实战： 三、基本概念与术语</a></li></ul></div>
+
+<h2>为什么？</h2>
+
+<p>为什么不直接使用官方的安装方法呢？为什么要引入Vagrant与Puppet呢？
+其中主要的原因有以下几点：</p>
+
+<ul>
+<li><p>很多人都是在Windows或Mac机器上做开发，而Docker必须运行在Linux环境下，这就给学习Docker带来了麻烦。而 Vagrant 是现在最流行的跨平台虚拟开发环境工具。通过使用Vagrant，Windows、 Mac OS X与Linux用户可以用完全相同的方式来安装并学习Docker。</p></li>
+<li><p>Vagrant能以自动化的方式同时管理一台或多台虚拟机。在今后遇到需要使用多台Docker服务器的场景时，可以节省大量的时间与精力。</p></li>
+<li><p>Puppet是一个被广泛使用的软件自动化配置与部署工具。在DevOps中起到了关键的作用。通过引入Puppet，我们可以在开发环境和生产环境共用一套配置脚本，只要开发环境配置好了，那么在生产环境安装Docker将是一件轻而易举的事情。</p></li>
+</ul>
+
+<p>有关Vagrant与Puppet的使用说明超出了本文范围。如果您不太熟悉这两款软件，也没关系，只要按照本文的步骤，安装Docker是没问题的。</p>
+
+<h2>安装Vagrant</h2>
+
+<p>安装方法请参见<a href="https://github.com/astaxie/Go-in-Action/blob/master/ebook/zh/01.2.md">Vgrant安装配置</a>, 注意只要安装好VirtualBox与Vagrant软件即可，先不要下载box。</p>
+
+<p>同时建议您安装 <a href="https://github.com/dotless-de/vagrant-vbguest">vagrant-vbguest</a> 这个Vagrant的插件。这个插件可以帮助您自动安装或更新VirtualBox Guest Additions。</p>
+
+<h2>创建虚拟机</h2>
+
+<p>建议使用<a href="http://cloud-images.ubuntu.com/vagrant/saucy/current/saucy-server-cloudimg-amd64-vagrant-disk1.box">Ubuntu官方的13.10版box</a>文件。您也可以在<a href="http://www.vagrantbox.es">http://www.vagrantbox.es</a>上找到由其他人提供的各个版本的Ubuntu虚拟机。</p>
+
+<p>虽然vagrant能自动下载镜像，但鉴于国内的网络现状，建议您还是先下载好相应的box文件。</p>
+
+<p>下载好box文件后，就可以开始创建本次要使用的虚拟机了。下面假设下载的box文件保存为：～/vagrant/boxs/ubuntu-13.10-base.box。</p>
+
+<div class="highlight"><pre><code class="sh"><span class="nv">$ </span>mkdir -p ~/vagrant/docker-1
+<span class="nv">$ </span><span class="nb">cd</span> ~/vagrant/docker-1
+<span class="nv">$ </span>vagrant init docker-1 ~/vagrant/boxs/ubuntu-13.10-base.box
+<span class="nv">$ </span>vagrant up
+</code></pre></div>
+
+<p>至此，一个名为docker-1的虚拟机已创建完成并正在运行中，我们可以通过</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant ssh
+</code></pre></div>
+<p>来登录此虚拟机。</p>
+
+<p>接下来需要配置此虚拟机使用puppet作为provision提供者，修改 Vagrantfile，添加以下配置：</p>
+<div class="highlight"><pre><code class="ruby language-ruby" data-lang="ruby"> <span class="c1"># 设置hostname以防止puppet运行出现错误</span>
+ <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">hostname</span> <span class="o">=</span> <span class="s2">&quot;docker-1.hlj.com&quot;</span>
+ <span class="c1"># 设置provision方式为 Puppet</span>
+ <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">provision</span> <span class="ss">:puppet</span> <span class="k">do</span> <span class="o">|</span><span class="n">puppet</span><span class="o">|</span>
+    <span class="n">puppet</span><span class="o">.</span><span class="n">manifests_path</span> <span class="o">=</span> <span class="s2">&quot;puppet/manifests&quot;</span>
+    <span class="n">puppet</span><span class="o">.</span><span class="n">module_path</span> <span class="o">=</span> <span class="s2">&quot;puppet/modules&quot;</span>
+    <span class="n">puppet</span><span class="o">.</span><span class="n">manifest_file</span>  <span class="o">=</span> <span class="s2">&quot;site.pp&quot;</span>
+ <span class="k">end</span>
+</code></pre></div>
+<h2>在目标机器上安装Puppet</h2>
+
+<p>如果使用的是Ubuntu官方的vagrant box，Puppet应该已经预装了。如果没有的话，安装也很方便：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>sudo apt-get update
+<span class="nv">$ </span>sudo apt-get install puppet-common
+</code></pre></div>
+<p>因为是以单机方式使用Puppet，所以只需要安装puppet-common这个包就行了，无需安装puppet和puppet-master，也不需要进行任何配置。</p>
+
+<h2>准备Puppet初始资源清单</h2>
+
+<p>1.首先创建一个容纳Puppet manifests和modules的目录结构：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span><span class="nb">cd</span> ~/vagrant/docker-1
+<span class="c"># 创建清单文件目录</span>
+<span class="nv">$ </span>mkdir -p puppet/manifests
+<span class="c"># 模块目录</span>
+<span class="nv">$ </span>mkdir -p puppet/modules
+<span class="c"># 创建主清单文件</span>
+<span class="nv">$ </span>touch puppet/manifests/site.pp
+</code></pre></div>
+<p>2.在site.pp中加入以下内容：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="c-Singleline"># 创建 puppet 组</span>
+<span class="nc">group</span> <span class="p">{</span> <span class="s2">&quot;puppet&quot;</span><span class="p">:</span>
+    <span class="nt">ensure</span> <span class="p">=&gt;</span> <span class="ss">present</span><span class="p">,</span>
+<span class="p">}</span><span class="c-Singleline"></span>
+
+<span class="c-Singleline"># 自动执行 apt-update，但限制每天最多一次</span>
+<span class="nc">exec</span> <span class="p">{</span> <span class="s2">&quot;apt-update&quot;</span> <span class="p">:</span>
+  <span class="nt">command</span> <span class="p">=&gt;</span> <span class="s2">&quot;/usr/bin/apt-get update&quot;</span><span class="p">,</span>
+  <span class="nt">schedule</span> <span class="p">=&gt;</span> <span class="ss">daily</span><span class="p">,</span>
+  <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Group</span><span class="p">[</span><span class="ss">puppet</span><span class="p">]</span>
+<span class="p">}</span><span class="c-Singleline"></span>
+
+<span class="c-Singleline"># 确保在其它包资源执行前执行apt-update</span>
+<span class="nc">Exec</span><span class="p">[</span><span class="s2">&quot;apt-update&quot;</span><span class="p">]</span> <span class="err">-&gt;</span> <span class="ss">Package</span> <span class="err">&lt;|</span> <span class="err">|&gt;</span>
+</code></pre></div>
+<p>3.执行 <code>vagrant reload --provision</code>, 重启虚拟机并应用Puppet。如果一切正常，你应该看到类似如下输出：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">...
+<span class="o">[</span>default<span class="o">]</span> Running provisioner: puppet...
+Running Puppet with site.pp...
+Notice: /Stage<span class="o">[</span>main<span class="o">]</span>//Exec<span class="o">[</span>apt-update<span class="o">]</span>/returns: executed successfully
+Notice: Finished catalog run in 16.60 seconds
+...
+</code></pre></div>
+<p>到目前为止，Puppet还没有做什么实际工作，只是更新了apt数据库。但这是一个良好的开端，随后我们将填充它来完成实际的Docker安装工作。</p>
+
+<h2>下载用于Puppet的Docker模块</h2>
+
+<p>虽然我们完全可以按照官方的安装指南来自己编写Docker的安装模块，但是既然已经有人帮我们写好了，那么本着不要重新发明轮子的精神，就直接下载使用吧。</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># 因为在我的host机器上没有安装Puppet，所以安装Puppet模块的命令要到虚拟机中去执行</span>
+<span class="nv">$ </span>vagrant ssh
+<span class="c"># 在虚拟机里切换到共享的/vagrant目录</span>
+vagrant@docker-1:~<span class="nv">$ </span><span class="nb">cd</span> /vagrant
+vagrant@docker-1:/vagrant<span class="nv">$ </span>puppet module install garethr-docker --target-dir<span class="o">=</span>puppet/modules
+vagrant@docker-1:/vagrant<span class="nv">$ </span><span class="nb">exit</span>
+<span class="nv">$ </span>ls puppet/modules
+</code></pre></div>
+<p>这时应该可以看到在modules下多了 <code>apt    docker epel   stdlib</code> 这4个模块。其中docker是主模块，其它3个是它所依赖的模块。</p>
+
+<h2>使用Docker模块</h2>
+
+<p>在site.pp中增加：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="kn">include</span> <span class="nc">docker</span>
+</code></pre></div>
+<p>然后执行</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant provision
+</code></pre></div>
+<p>最新版本的Docker就已经安装在我们机器上，并且正常运行了。
+下面让我们验证一下(此处版本号可能与本文不同，因为上述安装过程会自动安装最新版本的Docker)：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant ssh
+vagrant@docker-1:~<span class="nv">$ </span>sudo service docker status
+docker start/running, process 14278
+vagrant@docker-1:~<span class="nv">$ </span>sudo docker version
+Client version: 0.8.0
+Go version <span class="o">(</span>client<span class="o">)</span>: go1.2
+Git commit <span class="o">(</span>client<span class="o">)</span>: cc3a8c8
+Server version: 0.8.0
+Git commit <span class="o">(</span>server<span class="o">)</span>: cc3a8c8
+Go version <span class="o">(</span>server<span class="o">)</span>: go1.2
+Last stable version: 0.8.0
+</code></pre></div>
+<p>在Docker Puppet模块的<a href="https://github.com/garethr/garethr-docker">GitHub主页</a>上有其详细的使用说明。</p>
+
+<p>通常情况下，像上面那样简单的配置就可以了。不过为了今后能更方便使用Docker，需要稍微增加一点脚本复杂度。现在将site.pp 中的 <code>include docker</code> 改为以下内容：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="c-Singleline"># 同时绑定socket文件和tcp端口，以便今后引入Docker管理软件</span>
+<span class="nc">class</span> <span class="p">{</span> <span class="s1">&#39;docker&#39;</span><span class="p">:</span>
+  <span class="nt">tcp_bind</span>    <span class="p">=&gt;</span> <span class="s1">&#39;tcp://0.0.0.0:4243&#39;</span><span class="p">,</span>
+  <span class="nt">socket_bind</span> <span class="p">=&gt;</span> <span class="s1">&#39;unix:///var/run/docker.sock&#39;</span><span class="p">,</span>
+<span class="p">}</span><span class="c-Singleline"></span>
+
+<span class="c-Singleline"># 注意，因为某些众所周知的原因，国内用户不要添加以下内容，基础镜像的安装方法请参见下一篇文章。</span>
+<span class="c-Singleline"># 自动下载基础镜像</span>
+<span class="nc">docker::image</span> <span class="p">{</span> <span class="s1">&#39;ubuntu&#39;</span><span class="p">:</span>
+    <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Class</span><span class="p">[</span><span class="s1">&#39;docker&#39;</span><span class="p">],</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2>UFW设置</h2>
+
+<p>现在Ubuntu都预装了ufw这个很好用的防火墙，但是默认并没有开启。如果您计划启用它的话，则需要对它进行一些配置，以保证Docker能正常工作。</p>
+
+<p>首先下载UFW的Puppet模块：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span><span class="nb">cd </span>puppet/modules
+<span class="nv">$ </span>git clone https://github.com/hlj/puppet-module-ufw.git ufw
+</code></pre></div>
+<p>这个模块给我们操作UFW提供了基础。</p>
+
+<p>下面创建一个Puppet模块来配置我们的ufw选项。</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>mkdir -p puppet/modules/ufw-docker/manifests
+<span class="nv">$ </span>touch puppet/modules/ufw-docker/manifests/init.pp
+</code></pre></div>
+<p>更改 <code>init.pp</code> 的内容为：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="kd">class</span> <span class="nc">ufw</span><span class="err">-</span><span class="nc">docker</span> <span class="p">{</span>
+    <span class="nc">Exec</span> <span class="p">{</span>
+        <span class="nt">path</span> <span class="p">=&gt;</span> <span class="s2">&quot;/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="kn">include</span> <span class="nc">ufw</span>
+
+    <span class="nc">ufw::allow</span> <span class="p">{</span> <span class="s2">&quot;allow-ssh-from-all&quot;</span><span class="p">:</span>
+        <span class="nt">port</span> <span class="p">=&gt;</span> <span class="m">22</span><span class="p">,</span>
+        <span class="nt">ip</span> <span class="p">=&gt;</span> <span class="s2">&quot;any&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="nc">ufw::allow</span> <span class="p">{</span> <span class="s2">&quot;allow-docker-from-all&quot;</span><span class="p">:</span>
+        <span class="nt">port</span> <span class="p">=&gt;</span> <span class="m">4243</span><span class="p">,</span>
+        <span class="nt">ip</span> <span class="p">=&gt;</span> <span class="s2">&quot;any&quot;</span>
+    <span class="p">}</span>
+}
+</code></pre></div>
+<p>在 <code>site.pp</code> 中加入：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="kn">include</span> <span class="nc">ufw-docker</span>
+</code></pre></div>
+<p>保存后执行</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant provision
+</code></pre></div>
+<p>这样，我们就启用了UFW，并且开放了ssh与docker端口。</p>
+
+<p><em>注：官方安装指南中关于 DEFAULT<em>FORWARD</em>POLICY 的配置，我在虚拟机上试验时，发现不需要修改。可能物理机会有区别，需要以后验证。</em></p>
+
+<h2>非ROOT用户授权</h2>
+
+<p>Docker的后台进程是以root用户权限执行的，所以我们在执行docker的命令时，需要用 <code>sudo docker ...</code>。但是Docker也提供了一种机制让我们不需要使用sudo就可以运行Docker命令。只需要把用户加入docker组即可。</p>
+
+<p>现在，让我们来创建一个模块配置相应的用户：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>mkdir -p puppet/modules/docker-user/manifests
+<span class="nv">$ </span>touch puppet/modules/docker-user/manifests/init.pp
+</code></pre></div>
+<p>In <code>init.pp</code> :</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="kd">class</span> <span class="nc">docker</span><span class="err">-</span><span class="nc">user</span><span class="p">(</span><span class="nv">$users</span><span class="p">)</span> <span class="p">{</span><span class="c-Singleline"></span>
+
+<span class="c-Singleline">    # Define: add_to_group</span>
+<span class="c-Singleline">    # add a user to docker group</span>
+    <span class="kd">define</span> <span class="nc">add_to_group</span> <span class="p">()</span> <span class="p">{</span>
+        <span class="nc">exec</span> <span class="p">{</span> <span class="s2">&quot;add_</span><span class="si">${name}</span><span class="s2">_to_docker_group&quot;</span><span class="p">:</span>
+            <span class="nt">command</span> <span class="p">=&gt;</span> <span class="s2">&quot;gpasswd -a </span><span class="si">${name}</span><span class="s2"> docker&quot;</span><span class="p">,</span>
+            <span class="nt">path</span> <span class="p">=&gt;</span> <span class="nv">$path</span><span class="p">,</span>
+            <span class="nt">unless</span> <span class="p">=&gt;</span> <span class="s2">&quot;grep -E &#39;docker</span><span class="se">\\</span><span class="s2">S*</span><span class="si">${name}</span><span class="s2">&#39; /etc/group&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+    }
+
+    <span class="nc">group</span> <span class="p">{</span> <span class="s2">&quot;docker&quot;</span><span class="p">:</span>
+        <span class="nt">ensure</span> <span class="p">=&gt;</span> <span class="ss">present</span><span class="p">,</span>
+        <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Class</span><span class="p">[</span><span class="s2">&quot;docker&quot;</span><span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="nc">add_to_group</span> <span class="p">{</span> <span class="nv">$users</span><span class="p">:</span>
+        <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Group</span><span class="p">[</span><span class="s2">&quot;docker&quot;</span><span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="nc">exec</span> <span class="p">{</span><span class="s2">&quot;restart docker&quot;</span><span class="p">:</span>
+        <span class="nt">command</span> <span class="p">=&gt;</span> <span class="s2">&quot;service docker restart&quot;</span><span class="p">,</span>
+        <span class="nt">path</span> <span class="p">=&gt;</span> <span class="nv">$path</span><span class="p">,</span>
+        <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Add_to_group</span><span class="p">[</span><span class="nv">$users</span><span class="p">],</span>
+    <span class="p">}</span>
+}
+</code></pre></div>
+<p>在 <code>site.pp</code> 中加入:</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="nc">class</span> <span class="p">{</span> <span class="s2">&quot;docker-user&quot;</span><span class="p">:</span>
+    <span class="nt">users</span> <span class="p">=&gt;</span> <span class="p">[</span><span class="s2">&quot;vagrant&quot;</span><span class="p">],</span> <span class="c-Singleline"># 提供您想加入docker组的用户名</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>然后执行</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant provision
+</code></pre></div>
+<p>重新登录后，您应该可以不加sudo,直接执行Docker命令了。</p>
+
+  ]]></description>
+</item>
+
+
+	<item>
+  <title>Docker实战： 一、简介</title>
+  <link>http://betacz.com/2014/04/30/docker-pratices-intro/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-04-30T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/04/30/docker-pratices-intro/</guid>
+  <description><![CDATA[
+     <div class="img thumbnail pull-left">
+    <img src="http://betacz.com/images/articles/docker/docker-top-logo.png" />
+    
+</div>
+
+<p>在Docker的主页上是这么介绍它的：</p>
+
+<blockquote>
+<p>Docker is an open-source engine that automates the deployment of any application as a lightweight, portable, self-sufficient container that will run virtually anywhere.</p>
+
+<p>Docker containers can encapsulate any payload, and will run consistently on and between virtually any server. The same container that a developer builds and tests on a laptop will run at scale, in production*, on VMs, bare-metal servers, OpenStack clusters, public instances, or combinations of the above.</p>
+</blockquote>
+
+<p>从第一句话中我们可以知道，Docker是一个开源的容器引擎，用于在任何地方自动化部署任何应用程序。
+它所谓的容器内可以包含任何内容，运行在几乎任何基础设施上。并能保持测试与生产环境的一致性。</p>
+
+<p>Docker最本质的能力就是可以帮助我们将任何应用程序及它的所有依赖项，打包成独立的、易于分发及部署的容器。这些容器可以轻松运行在任何Docker所支持的基础设施上，使我们有能力构建所谓的PaaS.</p>
+
+<div class='panel seriesNote'><p>本文是《<a href='http://betacz.com/series/Docker实战'>Docker实战</a>》系列中的第1篇（共3篇）。</p><ul><li> 后一篇 - <a href='http://betacz.com/2014/05/08/docker-pratices-install/'>Docker实战： 二、安装</a></li></ul></div>
+
+<h2>基础知识</h2>
+
+<p>对于Docker的历史、实现原理、运行机制、限制条件等更多细节问题，请移步至</p>
+
+<p><a href="http://tiewei.github.io/cloud/Docker-Getting-Start/">Docker 介绍: 相关技术</a></p>
+
+<p>这个页面。此页面基本上涵盖Docker相关的所有基础知识。</p>
+
+<h2>我能用Docker吗？</h2>
+
+<p>Docker目前最基本的限制，就是它基于Linux 64bit，无法在windows/unix或32bit的linux环境下使用。因此，如果您没有Linux 64bit的主机，或者您的应用要求运行在windows/unix环境下，那现在就可以直接飘走了。</p>
+
+<p>除此之外，应该没有什么硬性限制能阻止您使用Docker。</p>
+
+<h2>它能解决什么问题？</h2>
+
+<p>Docker是 PaaS 提供商 dotCloud 开源的一个容器引擎。dotCloud公司使用它为成千上万的客户提供应用平台服务。Google、Redhat、百度等巨头也加入了对Docker的支持。可以说是风头正劲。</p>
+
+<p>但它与我们这些普通公司又有什么关系呢? 本人认为，使用Docker最大的意义在于推进DevOps.</p>
+
+<p>DevOps是一个热门的话题，同时也是一个复杂的话题。它包含了从开发到运维的一系列方法与工具的整合。Docker的出现，改变了我们传统的应用程序发布与管理方式。Docker所提供的一次打包，多处运行、开发与生产环境统一、应用间隔离、运行环境版本化、应用服务化等理念与手段，能很好的补充现有DevOps工具在应用开发、部署与管理方面的短板。同时，Docker作为应用程序更高层次的包装，也能与puppet,chef等现有DevOps工具无缝结合，必将进一步推动DevOps的发展。</p>
+
+  ]]></description>
+</item>
+
+
+</channel>
+</rss>

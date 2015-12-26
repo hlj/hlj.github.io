@@ -1,0 +1,15 @@
+.gsc-input-box {
+	height: auto !important;
+} 
+
+.gsc-search-button input {
+	height: 32px !important;
+	width: auto !important;
+	margin-top: 8px !important;
+	padding-top: 8px !important;
+}
+
+.gsc-orderby .gsc-selected-option-container {
+	max-width: 100px !important;
+	width: auto !important;
+}

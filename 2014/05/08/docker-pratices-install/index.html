@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <title>BetaCZ.com - Docker实战： 二、安装</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="BetaCZ.com - 慢半拍" />
+    <meta name="author" content="Beta CZ" />
+    <meta charset="UTF-8" />
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link rel="shortcut icon" type="image/png" href="/favicon.gif"/>
+    <link href='http://fonts.googleapis.com/css?family=Source+Code+Pro|Roboto+Slab' rel='stylesheet' type='text/css'>
+      <link href="/stylesheets/bootstrap.min.css" rel="stylesheet" />
+      <link href="/stylesheets/syntax-dark.css" rel="stylesheet" />
+      <link href="/stylesheets/main.css" rel="stylesheet"/>
+       <link href="/stylesheets/googlesearch_fix.css" rel="stylesheet"/>
+      <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-48462264-2', 'betacz.com');
+      ga('send', 'pageview');
+      </script>
+    </head>
+    <body>
+      <nav class="navbar navbar-inverse" role="navigation">
+        <div class='container'>
+          <!-- Brand and toggle get grouped for better mobile display -->
+          <div class="navbar-header">
+            <a class="navbar-brand" href="/">Beta CZ 的烂笔头</a>
+          </div>
+          <!-- Collect the nav links, forms, and other content for toggling -->
+          <ul class="nav navbar-nav ">
+            <li><a href="/about.html">关于我</a></li>
+            <li><a href="/cats_and_tags.html#categories">分类</a></li>
+            <li><a href="/cats_and_tags.html#tags">标签</a></li>
+            <li><a href="/series">专题</a></li>
+            <li><a href="/archives.html">归档</a></li>
+          </ul>
+          <form class="navbar-form navbar-right navbar-search" role="search">
+            <div class="form-group">
+              <input type="text" class="form-control search-query" placeholder="搜索">
+            </div>
+            <button type="submit" class="nav-search "><span class="glyphicon glyphicon-search"></span></button>
+          </form>
+          <ul class="nav navbar-nav  hidden-sm">
+            <li><a href="/atom.xml" title='订阅' target="_blank"><i class="icon-rss"></i></a></li>
+          </ul>
+        </div>
+      </nav>
+      <div class='container'>
+        <div class="row">
+	<div class="col-lg-12" id="content">
+		<article class="page">
+	<div class="page-header">
+		<h2 class="entry-title"><a href="/2014/05/08/docker-pratices-install/">Docker实战： 二、安装</a>
+			<small>
+				<span class="entry-date">2014-05-08</span>
+			</small>
+		</h2>
+	</div>
+
+	<div class="article-body">
+		<div class="row">
+			<div class="col-lg-12">
+				<div class="article-body">
+					<div class="img thumbnail pull-right">
+    <img src="/images/articles/docker/docker-top-logo.png" />
+    
+</div>
+
+<p>Docker可以运行在大多数Linux发行版上。但因为它对Linux Kernel版本有一定的要求（3.8以上），所以有些发行版需要自行升级内核。</p>
+
+<p>一般建议在有条件的情况下，尽量选择Ubuntu Server版做为主机，因为Docker官方对Ubuntu的支持最好。</p>
+
+<p>Docker的安装也比较简单，基本上按照<a href="http://docs.docker.io/en/latest/">官方的文档</a>就可以很容易的安装完成。</p>
+
+<p>但在本文中，我们会使用比较特别的方法来安装Docker：<strong>用<a href="http://www.vagrantup.com/">Vagrant</a>来创建和管理Ubuntu虚拟机，并通过<a href="http://puppetlabs.com/">Puppet</a>来安装</strong>。</p>
+
+<div class='panel seriesNote'><p>本文是《<a href='/series/Docker实战'>Docker实战</a>》系列中的第2篇（共3篇）。</p><ul><li> 前一篇 - <a href='/2014/04/30/docker-pratices-intro/'>Docker实战： 一、简介</a></li><li> 后一篇 - <a href='/2014/05/09/docker-pratices-terms/'>Docker实战： 三、基本概念与术语</a></li></ul></div>
+
+<h2>为什么？</h2>
+
+<p>为什么不直接使用官方的安装方法呢？为什么要引入Vagrant与Puppet呢？
+其中主要的原因有以下几点：</p>
+
+<ul>
+<li><p>很多人都是在Windows或Mac机器上做开发，而Docker必须运行在Linux环境下，这就给学习Docker带来了麻烦。而 Vagrant 是现在最流行的跨平台虚拟开发环境工具。通过使用Vagrant，Windows、 Mac OS X与Linux用户可以用完全相同的方式来安装并学习Docker。</p></li>
+<li><p>Vagrant能以自动化的方式同时管理一台或多台虚拟机。在今后遇到需要使用多台Docker服务器的场景时，可以节省大量的时间与精力。</p></li>
+<li><p>Puppet是一个被广泛使用的软件自动化配置与部署工具。在DevOps中起到了关键的作用。通过引入Puppet，我们可以在开发环境和生产环境共用一套配置脚本，只要开发环境配置好了，那么在生产环境安装Docker将是一件轻而易举的事情。</p></li>
+</ul>
+
+<p>有关Vagrant与Puppet的使用说明超出了本文范围。如果您不太熟悉这两款软件，也没关系，只要按照本文的步骤，安装Docker是没问题的。</p>
+
+<h2>安装Vagrant</h2>
+
+<p>安装方法请参见<a href="https://github.com/astaxie/Go-in-Action/blob/master/ebook/zh/01.2.md">Vgrant安装配置</a>, 注意只要安装好VirtualBox与Vagrant软件即可，先不要下载box。</p>
+
+<p>同时建议您安装 <a href="https://github.com/dotless-de/vagrant-vbguest">vagrant-vbguest</a> 这个Vagrant的插件。这个插件可以帮助您自动安装或更新VirtualBox Guest Additions。</p>
+
+<h2>创建虚拟机</h2>
+
+<p>建议使用<a href="http://cloud-images.ubuntu.com/vagrant/saucy/current/saucy-server-cloudimg-amd64-vagrant-disk1.box">Ubuntu官方的13.10版box</a>文件。您也可以在<a href="http://www.vagrantbox.es">http://www.vagrantbox.es</a>上找到由其他人提供的各个版本的Ubuntu虚拟机。</p>
+
+<p>虽然vagrant能自动下载镜像，但鉴于国内的网络现状，建议您还是先下载好相应的box文件。</p>
+
+<p>下载好box文件后，就可以开始创建本次要使用的虚拟机了。下面假设下载的box文件保存为：～/vagrant/boxs/ubuntu-13.10-base.box。</p>
+
+<div class="highlight"><pre><code class="sh"><span class="nv">$ </span>mkdir -p ~/vagrant/docker-1
+<span class="nv">$ </span><span class="nb">cd</span> ~/vagrant/docker-1
+<span class="nv">$ </span>vagrant init docker-1 ~/vagrant/boxs/ubuntu-13.10-base.box
+<span class="nv">$ </span>vagrant up
+</code></pre></div>
+
+<p>至此，一个名为docker-1的虚拟机已创建完成并正在运行中，我们可以通过</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant ssh
+</code></pre></div>
+<p>来登录此虚拟机。</p>
+
+<p>接下来需要配置此虚拟机使用puppet作为provision提供者，修改 Vagrantfile，添加以下配置：</p>
+<div class="highlight"><pre><code class="ruby language-ruby" data-lang="ruby"> <span class="c1"># 设置hostname以防止puppet运行出现错误</span>
+ <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">hostname</span> <span class="o">=</span> <span class="s2">&quot;docker-1.hlj.com&quot;</span>
+ <span class="c1"># 设置provision方式为 Puppet</span>
+ <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">provision</span> <span class="ss">:puppet</span> <span class="k">do</span> <span class="o">|</span><span class="n">puppet</span><span class="o">|</span>
+    <span class="n">puppet</span><span class="o">.</span><span class="n">manifests_path</span> <span class="o">=</span> <span class="s2">&quot;puppet/manifests&quot;</span>
+    <span class="n">puppet</span><span class="o">.</span><span class="n">module_path</span> <span class="o">=</span> <span class="s2">&quot;puppet/modules&quot;</span>
+    <span class="n">puppet</span><span class="o">.</span><span class="n">manifest_file</span>  <span class="o">=</span> <span class="s2">&quot;site.pp&quot;</span>
+ <span class="k">end</span>
+</code></pre></div>
+<h2>在目标机器上安装Puppet</h2>
+
+<p>如果使用的是Ubuntu官方的vagrant box，Puppet应该已经预装了。如果没有的话，安装也很方便：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>sudo apt-get update
+<span class="nv">$ </span>sudo apt-get install puppet-common
+</code></pre></div>
+<p>因为是以单机方式使用Puppet，所以只需要安装puppet-common这个包就行了，无需安装puppet和puppet-master，也不需要进行任何配置。</p>
+
+<h2>准备Puppet初始资源清单</h2>
+
+<p>1.首先创建一个容纳Puppet manifests和modules的目录结构：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span><span class="nb">cd</span> ~/vagrant/docker-1
+<span class="c"># 创建清单文件目录</span>
+<span class="nv">$ </span>mkdir -p puppet/manifests
+<span class="c"># 模块目录</span>
+<span class="nv">$ </span>mkdir -p puppet/modules
+<span class="c"># 创建主清单文件</span>
+<span class="nv">$ </span>touch puppet/manifests/site.pp
+</code></pre></div>
+<p>2.在site.pp中加入以下内容：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="c-Singleline"># 创建 puppet 组</span>
+<span class="nc">group</span> <span class="p">{</span> <span class="s2">&quot;puppet&quot;</span><span class="p">:</span>
+    <span class="nt">ensure</span> <span class="p">=&gt;</span> <span class="ss">present</span><span class="p">,</span>
+<span class="p">}</span><span class="c-Singleline"></span>
+
+<span class="c-Singleline"># 自动执行 apt-update，但限制每天最多一次</span>
+<span class="nc">exec</span> <span class="p">{</span> <span class="s2">&quot;apt-update&quot;</span> <span class="p">:</span>
+  <span class="nt">command</span> <span class="p">=&gt;</span> <span class="s2">&quot;/usr/bin/apt-get update&quot;</span><span class="p">,</span>
+  <span class="nt">schedule</span> <span class="p">=&gt;</span> <span class="ss">daily</span><span class="p">,</span>
+  <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Group</span><span class="p">[</span><span class="ss">puppet</span><span class="p">]</span>
+<span class="p">}</span><span class="c-Singleline"></span>
+
+<span class="c-Singleline"># 确保在其它包资源执行前执行apt-update</span>
+<span class="nc">Exec</span><span class="p">[</span><span class="s2">&quot;apt-update&quot;</span><span class="p">]</span> <span class="err">-&gt;</span> <span class="ss">Package</span> <span class="err">&lt;|</span> <span class="err">|&gt;</span>
+</code></pre></div>
+<p>3.执行 <code>vagrant reload --provision</code>, 重启虚拟机并应用Puppet。如果一切正常，你应该看到类似如下输出：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">...
+<span class="o">[</span>default<span class="o">]</span> Running provisioner: puppet...
+Running Puppet with site.pp...
+Notice: /Stage<span class="o">[</span>main<span class="o">]</span>//Exec<span class="o">[</span>apt-update<span class="o">]</span>/returns: executed successfully
+Notice: Finished catalog run in 16.60 seconds
+...
+</code></pre></div>
+<p>到目前为止，Puppet还没有做什么实际工作，只是更新了apt数据库。但这是一个良好的开端，随后我们将填充它来完成实际的Docker安装工作。</p>
+
+<h2>下载用于Puppet的Docker模块</h2>
+
+<p>虽然我们完全可以按照官方的安装指南来自己编写Docker的安装模块，但是既然已经有人帮我们写好了，那么本着不要重新发明轮子的精神，就直接下载使用吧。</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># 因为在我的host机器上没有安装Puppet，所以安装Puppet模块的命令要到虚拟机中去执行</span>
+<span class="nv">$ </span>vagrant ssh
+<span class="c"># 在虚拟机里切换到共享的/vagrant目录</span>
+vagrant@docker-1:~<span class="nv">$ </span><span class="nb">cd</span> /vagrant
+vagrant@docker-1:/vagrant<span class="nv">$ </span>puppet module install garethr-docker --target-dir<span class="o">=</span>puppet/modules
+vagrant@docker-1:/vagrant<span class="nv">$ </span><span class="nb">exit</span>
+<span class="nv">$ </span>ls puppet/modules
+</code></pre></div>
+<p>这时应该可以看到在modules下多了 <code>apt    docker epel   stdlib</code> 这4个模块。其中docker是主模块，其它3个是它所依赖的模块。</p>
+
+<h2>使用Docker模块</h2>
+
+<p>在site.pp中增加：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="kn">include</span> <span class="nc">docker</span>
+</code></pre></div>
+<p>然后执行</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant provision
+</code></pre></div>
+<p>最新版本的Docker就已经安装在我们机器上，并且正常运行了。
+下面让我们验证一下(此处版本号可能与本文不同，因为上述安装过程会自动安装最新版本的Docker)：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant ssh
+vagrant@docker-1:~<span class="nv">$ </span>sudo service docker status
+docker start/running, process 14278
+vagrant@docker-1:~<span class="nv">$ </span>sudo docker version
+Client version: 0.8.0
+Go version <span class="o">(</span>client<span class="o">)</span>: go1.2
+Git commit <span class="o">(</span>client<span class="o">)</span>: cc3a8c8
+Server version: 0.8.0
+Git commit <span class="o">(</span>server<span class="o">)</span>: cc3a8c8
+Go version <span class="o">(</span>server<span class="o">)</span>: go1.2
+Last stable version: 0.8.0
+</code></pre></div>
+<p>在Docker Puppet模块的<a href="https://github.com/garethr/garethr-docker">GitHub主页</a>上有其详细的使用说明。</p>
+
+<p>通常情况下，像上面那样简单的配置就可以了。不过为了今后能更方便使用Docker，需要稍微增加一点脚本复杂度。现在将site.pp 中的 <code>include docker</code> 改为以下内容：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="c-Singleline"># 同时绑定socket文件和tcp端口，以便今后引入Docker管理软件</span>
+<span class="nc">class</span> <span class="p">{</span> <span class="s1">&#39;docker&#39;</span><span class="p">:</span>
+  <span class="nt">tcp_bind</span>    <span class="p">=&gt;</span> <span class="s1">&#39;tcp://0.0.0.0:4243&#39;</span><span class="p">,</span>
+  <span class="nt">socket_bind</span> <span class="p">=&gt;</span> <span class="s1">&#39;unix:///var/run/docker.sock&#39;</span><span class="p">,</span>
+<span class="p">}</span><span class="c-Singleline"></span>
+
+<span class="c-Singleline"># 注意，因为某些众所周知的原因，国内用户不要添加以下内容，基础镜像的安装方法请参见下一篇文章。</span>
+<span class="c-Singleline"># 自动下载基础镜像</span>
+<span class="nc">docker::image</span> <span class="p">{</span> <span class="s1">&#39;ubuntu&#39;</span><span class="p">:</span>
+    <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Class</span><span class="p">[</span><span class="s1">&#39;docker&#39;</span><span class="p">],</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2>UFW设置</h2>
+
+<p>现在Ubuntu都预装了ufw这个很好用的防火墙，但是默认并没有开启。如果您计划启用它的话，则需要对它进行一些配置，以保证Docker能正常工作。</p>
+
+<p>首先下载UFW的Puppet模块：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span><span class="nb">cd </span>puppet/modules
+<span class="nv">$ </span>git clone https://github.com/hlj/puppet-module-ufw.git ufw
+</code></pre></div>
+<p>这个模块给我们操作UFW提供了基础。</p>
+
+<p>下面创建一个Puppet模块来配置我们的ufw选项。</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>mkdir -p puppet/modules/ufw-docker/manifests
+<span class="nv">$ </span>touch puppet/modules/ufw-docker/manifests/init.pp
+</code></pre></div>
+<p>更改 <code>init.pp</code> 的内容为：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="kd">class</span> <span class="nc">ufw</span><span class="err">-</span><span class="nc">docker</span> <span class="p">{</span>
+    <span class="nc">Exec</span> <span class="p">{</span>
+        <span class="nt">path</span> <span class="p">=&gt;</span> <span class="s2">&quot;/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="kn">include</span> <span class="nc">ufw</span>
+
+    <span class="nc">ufw::allow</span> <span class="p">{</span> <span class="s2">&quot;allow-ssh-from-all&quot;</span><span class="p">:</span>
+        <span class="nt">port</span> <span class="p">=&gt;</span> <span class="m">22</span><span class="p">,</span>
+        <span class="nt">ip</span> <span class="p">=&gt;</span> <span class="s2">&quot;any&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="nc">ufw::allow</span> <span class="p">{</span> <span class="s2">&quot;allow-docker-from-all&quot;</span><span class="p">:</span>
+        <span class="nt">port</span> <span class="p">=&gt;</span> <span class="m">4243</span><span class="p">,</span>
+        <span class="nt">ip</span> <span class="p">=&gt;</span> <span class="s2">&quot;any&quot;</span>
+    <span class="p">}</span>
+}
+</code></pre></div>
+<p>在 <code>site.pp</code> 中加入：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="kn">include</span> <span class="nc">ufw-docker</span>
+</code></pre></div>
+<p>保存后执行</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant provision
+</code></pre></div>
+<p>这样，我们就启用了UFW，并且开放了ssh与docker端口。</p>
+
+<p><em>注：官方安装指南中关于 DEFAULT<em>FORWARD</em>POLICY 的配置，我在虚拟机上试验时，发现不需要修改。可能物理机会有区别，需要以后验证。</em></p>
+
+<h2>非ROOT用户授权</h2>
+
+<p>Docker的后台进程是以root用户权限执行的，所以我们在执行docker的命令时，需要用 <code>sudo docker ...</code>。但是Docker也提供了一种机制让我们不需要使用sudo就可以运行Docker命令。只需要把用户加入docker组即可。</p>
+
+<p>现在，让我们来创建一个模块配置相应的用户：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>mkdir -p puppet/modules/docker-user/manifests
+<span class="nv">$ </span>touch puppet/modules/docker-user/manifests/init.pp
+</code></pre></div>
+<p>In <code>init.pp</code> :</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="kd">class</span> <span class="nc">docker</span><span class="err">-</span><span class="nc">user</span><span class="p">(</span><span class="nv">$users</span><span class="p">)</span> <span class="p">{</span><span class="c-Singleline"></span>
+
+<span class="c-Singleline">    # Define: add_to_group</span>
+<span class="c-Singleline">    # add a user to docker group</span>
+    <span class="kd">define</span> <span class="nc">add_to_group</span> <span class="p">()</span> <span class="p">{</span>
+        <span class="nc">exec</span> <span class="p">{</span> <span class="s2">&quot;add_</span><span class="si">${name}</span><span class="s2">_to_docker_group&quot;</span><span class="p">:</span>
+            <span class="nt">command</span> <span class="p">=&gt;</span> <span class="s2">&quot;gpasswd -a </span><span class="si">${name}</span><span class="s2"> docker&quot;</span><span class="p">,</span>
+            <span class="nt">path</span> <span class="p">=&gt;</span> <span class="nv">$path</span><span class="p">,</span>
+            <span class="nt">unless</span> <span class="p">=&gt;</span> <span class="s2">&quot;grep -E &#39;docker</span><span class="se">\\</span><span class="s2">S*</span><span class="si">${name}</span><span class="s2">&#39; /etc/group&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+    }
+
+    <span class="nc">group</span> <span class="p">{</span> <span class="s2">&quot;docker&quot;</span><span class="p">:</span>
+        <span class="nt">ensure</span> <span class="p">=&gt;</span> <span class="ss">present</span><span class="p">,</span>
+        <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Class</span><span class="p">[</span><span class="s2">&quot;docker&quot;</span><span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="nc">add_to_group</span> <span class="p">{</span> <span class="nv">$users</span><span class="p">:</span>
+        <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Group</span><span class="p">[</span><span class="s2">&quot;docker&quot;</span><span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="nc">exec</span> <span class="p">{</span><span class="s2">&quot;restart docker&quot;</span><span class="p">:</span>
+        <span class="nt">command</span> <span class="p">=&gt;</span> <span class="s2">&quot;service docker restart&quot;</span><span class="p">,</span>
+        <span class="nt">path</span> <span class="p">=&gt;</span> <span class="nv">$path</span><span class="p">,</span>
+        <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Add_to_group</span><span class="p">[</span><span class="nv">$users</span><span class="p">],</span>
+    <span class="p">}</span>
+}
+</code></pre></div>
+<p>在 <code>site.pp</code> 中加入:</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="nc">class</span> <span class="p">{</span> <span class="s2">&quot;docker-user&quot;</span><span class="p">:</span>
+    <span class="nt">users</span> <span class="p">=&gt;</span> <span class="p">[</span><span class="s2">&quot;vagrant&quot;</span><span class="p">],</span> <span class="c-Singleline"># 提供您想加入docker组的用户名</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>然后执行</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant provision
+</code></pre></div>
+<p>重新登录后，您应该可以不加sudo,直接执行Docker命令了。</p>
+
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-lg-5 col-lg-offset-7">
+				
+				<div class="post-details">
+	分类:
+		
+			
+				<a href="/category/服务器"><span class="label label-default">服务器</span></a>
+			
+		
+	|
+	标签:
+		
+			
+				<a href="/tag/Docker"><span class="label label-default">Docker</span></a>
+			
+				<a href="/tag/服务器"><span class="label label-default">服务器</span></a>
+			
+		
+	|
+	<a href="http://betacz.com/2014/05/08/docker-pratices-install/"><span class="label label-info">Permalink</span></a>
+</div>
+
+
+
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-lg-12">
+				 <div id="disqus_thread"></div>
+			    <script type="text/javascript">
+			        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+			        var disqus_shortname = 'betacz-blog'; // required: replace example with your forum shortname
+
+			        /* * * DON'T EDIT BELOW THIS LINE * * */
+			        (function() {
+			            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+			            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+			            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+			        })();
+			    </script>
+			    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+			    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+		</div>
+	</div>
+</article>
+
+	</div>
+</div>
+
+      </div>
+      <footer class="rjfooter">
+        <div class="container">
+          <div class="row">
+            <div class="col-lg-6 col-lg-offset-3">
+              <p>&copy 2014.04 - Beta CZ ::: Hosted by <a href="https://pages.github.com/">GitHub Pages</a></p>
+              <p class="disclaimer">
+              <small>
+              <strong>免责声明:</strong> 此站为个人站点，本站内容除特别注明外均为本人原创。文章内容仅代表个人观点，
+              与本人所属公司或组织无关。其他组织或个人也无权主张本站所有内容的版权。
+              </small>
+              </p>
+            </div>
+          </div>
+        </div>
+      </footer>
+      <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+      <script type="text/javascript" src="/js/bootstrap.min.js"></script>
+      <script type="text/javascript">
+      $('.search-query').keypress(function (e) {
+        if (e.which == 13) {
+          $(this).closest('form').submit();
+          return false;  
+        }
+      });
+      $('.navbar-search').on('submit', function(){
+        var url =  '/search.html?q=' + $('.search-query').val();
+        window.location.href=url;
+        return false;
+      })
+      </script>
+    </body>
+  </html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <title>BetaCZ.com - Docker实战： 三、基本概念与术语</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="BetaCZ.com - 慢半拍" />
+    <meta name="author" content="Beta CZ" />
+    <meta charset="UTF-8" />
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link rel="shortcut icon" type="image/png" href="/favicon.gif"/>
+    <link href='http://fonts.googleapis.com/css?family=Source+Code+Pro|Roboto+Slab' rel='stylesheet' type='text/css'>
+      <link href="/stylesheets/bootstrap.min.css" rel="stylesheet" />
+      <link href="/stylesheets/syntax-dark.css" rel="stylesheet" />
+      <link href="/stylesheets/main.css" rel="stylesheet"/>
+       <link href="/stylesheets/googlesearch_fix.css" rel="stylesheet"/>
+      <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-48462264-2', 'betacz.com');
+      ga('send', 'pageview');
+      </script>
+    </head>
+    <body>
+      <nav class="navbar navbar-inverse" role="navigation">
+        <div class='container'>
+          <!-- Brand and toggle get grouped for better mobile display -->
+          <div class="navbar-header">
+            <a class="navbar-brand" href="/">Beta CZ 的烂笔头</a>
+          </div>
+          <!-- Collect the nav links, forms, and other content for toggling -->
+          <ul class="nav navbar-nav ">
+            <li><a href="/about.html">关于我</a></li>
+            <li><a href="/cats_and_tags.html#categories">分类</a></li>
+            <li><a href="/cats_and_tags.html#tags">标签</a></li>
+            <li><a href="/series">专题</a></li>
+            <li><a href="/archives.html">归档</a></li>
+          </ul>
+          <form class="navbar-form navbar-right navbar-search" role="search">
+            <div class="form-group">
+              <input type="text" class="form-control search-query" placeholder="搜索">
+            </div>
+            <button type="submit" class="nav-search "><span class="glyphicon glyphicon-search"></span></button>
+          </form>
+          <ul class="nav navbar-nav  hidden-sm">
+            <li><a href="/atom.xml" title='订阅' target="_blank"><i class="icon-rss"></i></a></li>
+          </ul>
+        </div>
+      </nav>
+      <div class='container'>
+        <div class="row">
+	<div class="col-lg-12" id="content">
+		<article class="page">
+	<div class="page-header">
+		<h2 class="entry-title"><a href="/2014/05/09/docker-pratices-terms/">Docker实战： 三、基本概念与术语</a>
+			<small>
+				<span class="entry-date">2014-05-09</span>
+			</small>
+		</h2>
+	</div>
+
+	<div class="article-body">
+		<div class="row">
+			<div class="col-lg-12">
+				<div class="article-body">
+					<div class="img thumbnail pull-right">
+    <img src="/images/articles/docker/docker-top-logo.png" />
+    
+</div>
+
+<p>在前一章中，我们创建了一个Ubuntu虚拟机，并在这个虚拟机上安装了Docker服务器。于是，我们有了一个正在运行着的Docker服务器，还有一个名为docker的命令行客户端用于与Docker服务进行交互。</p>
+
+<p>现在你肯定已经跃跃欲试的想在命令行上输入点什么了。但是请先等一下，在进行下一步实际演练之前，我们还需要搞清楚一些基本的概念。</p>
+
+<div class='panel seriesNote'><p>本文是《<a href='/series/Docker实战'>Docker实战</a>》系列中的第3篇（共3篇）。</p><ul><li> 前一篇 - <a href='/2014/05/08/docker-pratices-install/'>Docker实战： 二、安装</a></li></ul></div>
+
+<h2>容器（Container）</h2>
+
+<hr>
+
+<p>Docker自称是一个<strong>容器</strong>引擎。那么这个<strong>“容器”</strong>到底是什么意思呢？</p>
+
+<p>我们知道，Docker最基础的能力就是能将一个应用打包成一个可以独立运行的、便携式的容器。这里“独立”的意思是除Docker自身外没有第三方软件依赖并且与其它容器完全隔离。“便携”的意思则是说容器可以在任何支持Docker的主机上自由的迁移，无论此主机是物理机器还是虚拟机，也无论是哪个Linux发行版本。在多台主机上分发与运行一个打包好的应用就像发动汽车那样简单。</p>
+
+<p>这听起来有些不可思议，因为一个应用的运行环境包括大量的外部依赖。就拿一个最简单的Web应用来说，就包括了指定版本的操作系统、相应语言环境或运行时库(Java、Ruby、PHP...)、数据库及其驱动(Oracle、Mysql、 Mongodb...)、HTTP服务器(Apache、Nginx...)、第三方软件包等等。另外，还需要大量特定的配置，如操作系统用户及组配置、目录权限设置、日志管理、网络端口配置等等。在传统的部署模式中，即使应用了自动配置工具如Puppet、Chef等，要在一台新机器上发布一个应用还是一件费时费力的工作。要是多个应用部署在一台主机上，那各种软件版本冲突、资源分配与协调等工作更是让人头疼。</p>
+
+<p>为了解决这个问题，Docker使用了类似虚拟机的技术，将OS、应用程序及其依赖软件、配置信息等都写入一个镜像（Image）文件. 但与普通虚拟机不同的是，这个Image的文件系统是只读的。也就说，打包一旦完成，那么里面所有内容都不可更改了。</p>
+
+<p>在启动一个镜像时，Docker首先读取这个镜像，然后在其上面再增加一个可读写层。这个可读写层，加上它所有的父镜像和诸如网络配置、唯一编码、内存与cpu限制等附加信息，被称为一个 <strong>容器（Container）</strong>。</p>
+
+<p>从面向对象的角度来看，可以把镜像视为类，容器则是这个类的实例。一个镜像可以产生出多个容器，而一个容器只能基于一个镜像创建。</p>
+
+<h3>容器的状态</h3>
+
+<p>容器具有“running”与&quot;exited&quot;两个状态。</p>
+
+<p>一个处于running状态的容器，除了包含前述的文件系统内容和附加信息外，还包括了所有运行中的进程树。这棵进程树与主机上运行的其它进程是相互隔离的。</p>
+
+<p>当容器内的进程运行结束，或者用户手工停止或杀死这个容器时，容器就处于“exited”状态。所有在容器运行时对文件系统的更改都将被保留，但内存状态将会丢失。我们可以稍后再次启动这个容器。</p>
+
+<h3>容器ID与命名</h3>
+
+<p>每一个容器都有一个唯一的ID，这个ID是一个由64个16进制字符组成的字符串。为了方便在命令中引用，我们一般只需使用前12个字符即可。</p>
+
+<p>为了更加便于记忆与引用，在创建容器时，我们也可以给容器命名，比如给将一个Mongodb容器命名为“mg-server“，或者将一个FTP容器命名为“my-file-server”等等。容器的名称可以随意指定，只要保证在这台主机上是唯一的即可。</p>
+
+<h2>镜像 (Image)</h2>
+
+<hr>
+
+<p>在Docker的术语中，镜像表示一个只读的文件系统层。</p>
+
+<p>Docker使用了一种被称为“联合文件系统 (Union File System)”的技术来创建容器。整个容器被视为拥有一个可读写的文件系统，但实际在内部，所有的修改操作都只是发生在最上面的可读写层，在下层的只读镜像中的原始文件是永远不变的。因为镜像不能被修改，所以它也没有状态。</p>
+
+<h3>父镜像（Parent Image）</h3>
+
+<p>除了基础镜像外，所有其它的镜像都是基于其它一个或多个镜像创建的。这些镜像被称为这个镜像的父镜像。每个镜像实际上只存储了相对于父镜像的变化部分。通过这样的技术，不同的应用容器可以共享相同的父镜像，极大的节约了系统资源。</p>
+
+<h3>基础镜像（Base Image）</h3>
+
+<p>没有任何父镜像的层称为基础镜像。绝大多数基础镜像都是包含了最基本的操作系统的镜像。在docker的中心注册库中包含了大多数流行的Linux发行版本的基础镜像。</p>
+
+<h3>镜像ID</h3>
+
+<p>每一个镜像都有一个唯一的ID，这个ID是一个由64个16进制字符组成的字符串。为了方便在命令中引用，我们一般只需使用前12个字符即可。</p>
+
+<h2>仓库（Repository）</h2>
+
+<hr>
+
+<p>一个仓库代表了一系列镜像的逻辑集合。</p>
+
+<p>为了方便的对镜像进行引用与版本管理，我们一般会把同一类镜像与一个仓库名称关联。在仓库中则使用标签（tag）来指向特定的镜像。</p>
+
+<p>可以把仓库视为某一类镜像的共同名称，而tag则是指向某一具体镜像的指针。</p>
+
+<p>在使用仓库名称引用镜像时，需要指定标签，如果没有给出标签名，则默认为<strong>latest</strong>.</p>
+
+<p>举例来说，假设我们开发了一个名为“new<em>app”的应用并创建了一个当前版本的镜像文件。我们现在可以把这个镜像文件与仓库名称“new</em>app<em>repo”关联(关联方法在下一节说明)。现在这个名为&quot;new</em>app<em>repo&quot;的仓库就保存了这个镜像及其所有父镜像的ID，并且创建了一个名为“latest”的标签，指向最新的那个镜像ID。过了几天，我们发布了new</em>app的新版本程序，并重新创建了最新版本的镜像文件。这时我们可以先把旧的镜像关联至“new<em>app</em>repo:old<em>version”这个标签，然后将新镜像关联至“new</em>app<em>repo:latest”。这样一来，我们的仓库“new</em>app<em>repo”就包含了应用&quot;new</em>app&quot;的所有版本，并且其默认标签“lastest”总是指向最新的应用程序版本。</p>
+
+<p>但在实际上，一个仓库内的镜像并不需要有实际的关联，我们完全可以把属于不同应用的镜像关联至同一个仓库，只是这样做似乎没有什么实际用处。</p>
+
+<h3>关联镜像至仓库名</h3>
+
+<p>目前有三种方法可以将一个镜像与仓库名关联：</p>
+
+<ol>
+<li>在构建时指定，如: docker build -t 镜像名称</li>
+<li>在提交一个容器至镜像时，如： docker commit 容器ID 镜像名称</li>
+<li>在为一个镜像ID打标签时，如： docker tag 镜像ID 镜像名称</li>
+</ol>
+
+<p>这里的镜像名称是指完全限定的镜像名（Fully Qualified Image Name (FQIN) 由三部分组成：</p>
+<div class="highlight"><pre><code class="text language-text" data-lang="text">[registry_hostname[:port]/][user_name/](repository_name[:version_tag])
+[注册库主机名:[端口]]/][用户名/]([仓库名][:版本标签])
+</code></pre></div>
+<p>其中只有仓库名是必须的。注册库默认为<code>index.docker.io:80</code>。 版本标签默认为<code>latest</code>。</p>
+
+<p>如果您创建一个新的仓库并想发布到中心注册库进行分享，那么必须给出用户名，因为默认的&#39;default&#39;用户名是为Docker官方镜像保留的。</p>
+
+<h2>标签（Tag）</h2>
+
+<hr>
+
+<p>标签指向仓库中的某个具体镜像。可以视为镜像在当前仓库中的命名指针。</p>
+
+<h2>注册库（Resgistry）</h2>
+
+<hr>
+
+<p>注册库是一个能响应Registry API的，包含了镜像仓库的托管服务。</p>
+
+<p>默认的注册库位于<a href="https://index.docker.io">https://index.docker.io</a>。这是一个Docker官方创建的公开注册库。任何人都可以在上面发布及下载共享的镜像。 </p>
+
+<p>您也可以创建私有注册库来托管您公司的私有仓库。</p>
+
+<p>注册库的主要作用是进行镜像的分享。我们可以把自己创建的镜像发布到注册库中，也可以从注册库中获取其他人创建的镜像。</p>
+
+				</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-lg-5 col-lg-offset-7">
+				
+				<div class="post-details">
+	分类:
+		
+			
+				<a href="/category/服务器"><span class="label label-default">服务器</span></a>
+			
+		
+	|
+	标签:
+		
+			
+				<a href="/tag/Docker"><span class="label label-default">Docker</span></a>
+			
+				<a href="/tag/服务器"><span class="label label-default">服务器</span></a>
+			
+		
+	|
+	<a href="http://betacz.com/2014/05/09/docker-pratices-terms/"><span class="label label-info">Permalink</span></a>
+</div>
+
+
+
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-lg-12">
+				 <div id="disqus_thread"></div>
+			    <script type="text/javascript">
+			        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+			        var disqus_shortname = 'betacz-blog'; // required: replace example with your forum shortname
+
+			        /* * * DON'T EDIT BELOW THIS LINE * * */
+			        (function() {
+			            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+			            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+			            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+			        })();
+			    </script>
+			    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+			    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+		</div>
+	</div>
+</article>
+
+	</div>
+</div>
+
+      </div>
+      <footer class="rjfooter">
+        <div class="container">
+          <div class="row">
+            <div class="col-lg-6 col-lg-offset-3">
+              <p>&copy 2014.04 - Beta CZ ::: Hosted by <a href="https://pages.github.com/">GitHub Pages</a></p>
+              <p class="disclaimer">
+              <small>
+              <strong>免责声明:</strong> 此站为个人站点，本站内容除特别注明外均为本人原创。文章内容仅代表个人观点，
+              与本人所属公司或组织无关。其他组织或个人也无权主张本站所有内容的版权。
+              </small>
+              </p>
+            </div>
+          </div>
+        </div>
+      </footer>
+      <script type="text/javascript" src="/js/jquery-2.0.3.min.js"></script>
+      <script type="text/javascript" src="/js/bootstrap.min.js"></script>
+      <script type="text/javascript">
+      $('.search-query').keypress(function (e) {
+        if (e.which == 13) {
+          $(this).closest('form').submit();
+          return false;  
+        }
+      });
+      $('.navbar-search').on('submit', function(){
+        var url =  '/search.html?q=' + $('.search-query').val();
+        window.location.href=url;
+        return false;
+      })
+      </script>
+    </body>
+  </html>

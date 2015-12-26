@@ -1,0 +1,1173 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+   
+   	<title>betacz.com - Tag: Docker</title>
+   
+   <link>http://betacz.com</link>
+   <language>zh-cn</language>
+   <managingEditor>Beta CZ</managingEditor>
+   <atom:link href="rss" rel="self" type="application/rss+xml" />
+   
+	<item>
+  <title>一个管理Docker应用程序的脚本模板</title>
+  <link>http://betacz.com/2014/05/29/docker-app-script-template/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-05-29T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/05/29/docker-app-script-template/</guid>
+  <description><![CDATA[
+     <p>这是一个用于管理使用Docker打包的应用程序的脚本。通过包装docker命令，提供了特定应用程序的启动、停止、删除等管理功能。通过修改几个变量值，可以很容易的适配各类应用。</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c">#! /bin/bash -</span>
+
+<span class="c">#####################################################</span>
+<span class="c"># 此文件为Docker容器管理脚本模板,可自由使用与传播.</span>
+<span class="c"># 请根据具体的应用程序作相应修改</span>
+<span class="c"># 如有疑问，请联系: Beta CZ &lt;hlj8080@gmail.com&gt;</span>
+<span class="c">#####################################################</span>
+
+<span class="c"># 应用程序配置，按需修改</span>
+<span class="nv">imagename</span><span class="o">=</span>dockerfile/redis
+<span class="nv">container_name</span><span class="o">=</span>redis_db
+<span class="nv">start_cmd</span><span class="o">=</span><span class="s2">&quot;docker run -d -p 6379:6379 --name ${container_name} ${imagename}&quot;</span>
+
+<span class="c"># 获取容器状态命令, 除非Docker命令有变化，否则无需更改</span>
+<span class="nv">container</span><span class="o">=(</span><span class="sb">`</span>docker ps <span class="p">|</span> grep <span class="k">${</span><span class="nv">container_name</span><span class="k">}</span><span class="sb">`</span><span class="o">)</span>
+<span class="nv">container_stopped</span><span class="o">=(</span><span class="sb">`</span>docker ps -a <span class="p">|</span> grep <span class="k">${</span><span class="nv">container_name</span><span class="k">}</span><span class="sb">`</span><span class="o">)</span>
+
+<span class="c"># 以下内容只在必要时才能更改,并确保清楚其后果.</span>
+usage<span class="o">()</span>
+<span class="o">{</span>
+  <span class="nb">echo</span> <span class="s2">&quot; * Usage: $0 {start|stop|kill|remove|status}&quot;</span>
+  <span class="nb">exit </span>255
+<span class="o">}</span>
+
+<span class="k">if</span> <span class="o">[</span> <span class="nv">$# </span>-ne 1 <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">  </span>usage
+<span class="k">fi</span>
+
+<span class="k">if</span> <span class="o">[</span> <span class="nv">$1</span> !<span class="o">=</span> <span class="s2">&quot;start&quot;</span> <span class="o">]</span> <span class="o">&amp;&amp;</span> <span class="o">[</span> -z <span class="nv">$container</span> <span class="o">]</span> <span class="o">&amp;&amp;</span> <span class="o">[</span> -z <span class="nv">$container_stopped</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">  </span><span class="nb">echo</span> <span class="s2">&quot;ERROR：容器 ${container_name} 不存在.&quot;</span>
+  <span class="nb">exit </span>255
+<span class="k">fi </span>
+
+<span class="k">case</span> <span class="nv">$1</span> in
+start<span class="o">)</span>
+  <span class="k">if</span> <span class="o">[</span> <span class="nv">$container</span> <span class="o">]</span>
+  <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 应用正在运行中,请不要重复运行!&quot;</span>
+    <span class="nb">exit </span>255
+  <span class="k">fi</span>
+
+<span class="k">  if</span> <span class="o">[</span> <span class="nv">$container_stopped</span> <span class="o">]</span>
+  <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 已经停止，现在重新启动...&quot;</span>
+    docker start <span class="k">${</span><span class="nv">container_name</span><span class="k">}</span>
+  <span class="k">else</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 开始启动...&quot;</span>
+    <span class="nv">container_id</span><span class="o">=(</span><span class="sb">`</span><span class="k">${</span><span class="nv">start_cmd</span><span class="k">}</span><span class="sb">`</span><span class="o">)</span>
+  <span class="k">fi</span>
+<span class="k">  </span><span class="nb">echo</span> <span class="s2">&quot;启动完成,应用名称为:${container_name},ID为:${container_id}&quot;</span>
+  <span class="p">;;</span>
+stop<span class="o">)</span>
+  <span class="k">if</span> <span class="o">[</span> <span class="nv">$container</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span>docker stop <span class="k">${</span><span class="nv">container_name</span><span class="k">}</span>
+    <span class="nb">echo</span> <span class="s2">&quot;停止 ${container_name} 已完成.&quot;</span>  
+  <span class="k">elif</span> <span class="o">[</span> <span class="nv">$container_stopped</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 当前已经处于停止状态，操作无效.&quot;</span>
+  <span class="k">fi</span>
+  <span class="p">;;</span>
+<span class="nb">kill</span><span class="o">)</span>
+  <span class="k">if</span> <span class="o">[</span> <span class="nv">$container</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span>docker <span class="nb">kill</span> <span class="k">${</span><span class="nv">container_name</span><span class="k">}</span>
+    <span class="nb">echo</span> <span class="s2">&quot;杀死 ${container_name} 已完成.&quot;</span>  
+  <span class="k">elif</span> <span class="o">[</span> <span class="nv">$container_stopped</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 当前已经处于停止状态，操作无效.&quot;</span>
+  <span class="k">fi</span>
+  <span class="p">;;</span>
+remove<span class="o">)</span>
+  <span class="k">if</span> <span class="o">[</span> <span class="nv">$container</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 正在运行中，无法删除。&quot;</span>
+    <span class="nb">exit </span>255
+  <span class="k">elif</span> <span class="o">[</span> <span class="nv">$container_stopped</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span>docker rm <span class="k">${</span><span class="nv">container_name</span><span class="k">}</span>
+    <span class="nb">echo</span> <span class="s2">&quot;删除 ${container_name} 已完成.&quot;</span>
+  <span class="k">fi</span>
+  <span class="p">;;</span>
+status<span class="o">)</span>
+  <span class="k">if</span> <span class="o">[</span> <span class="nv">$container</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 正在运行中.&quot;</span>
+  <span class="k">elif</span> <span class="o">[</span> <span class="nv">$container_stopped</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 容器已创建，但处于停止状态。&quot;</span>
+  <span class="k">else</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 容器未找到！&quot;</span>
+  <span class="k">fi</span>
+  <span class="p">;;</span>
+*<span class="o">)</span>
+  usag
+  <span class="p">;;</span>
+<span class="k">esac</span>
+<span class="nb">exit </span>0
+</code></pre></div>
+  ]]></description>
+</item>
+
+
+	<item>
+  <title>Gitolite on Docker</title>
+  <link>http://betacz.com/2014/05/29/docker-gitolite/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-05-29T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/05/29/docker-gitolite/</guid>
+  <description><![CDATA[
+     <p>在公司内部我们有十多个项目用Git作为源代码版本控制工具。因为是内部项目，所以简单在一台内网Linux服务器上创建一个名为git的用户，所有项目成员都通过此用户，使用ssh协议来读写中心代码库。同时，又用nginx架设了一个HTTP服务器，在部署环境提供Git仓库的只读访问。</p>
+
+<p>但是这样做的弊端也很明显，尤其在以下几点方面让人比较头疼：</p>
+
+<ul>
+<li>项目成员有变化时，需要管理员登录到服务器上去手工增加或删除ssh公钥。</li>
+<li>因为所有成员都通过git用户来访问，一旦为某个成员在服务器上增加了公钥，就意味着同时开放了这台服务器所有其它项目的代码。</li>
+<li>只能通过HTTP或SSH协议来提供只读/读写两类权限控制，无法对项目内容进行细粒度的权限控制。</li>
+<li>为一个项目开放HTTP访问需要管理员手工去修改hook。</li>
+</ul>
+
+<p>总之，这种SSH方式虽然简单易行，但在安全性和便利性上却不尽如人意。</p>
+
+<p>Gitolite作为更强大但也更复杂的Git服务器，以前也看到很多人在推荐。但因为需求没那么迫切，一直没有好好研究过。不过最近在做应用的Docker化时，产生了把Git服务器也打包成一个Docker容器的想法。既然要动手，那就干脆直接迁移到Gitolite上吧。</p>
+
+<h2>构建容器</h2>
+
+<hr>
+
+<p>此容器的构建代码可以从我的<a href="https://github.com/hlj/gitolite-docker">Github项目</a>上下载。</p>
+
+<p>项目中包括4个文件，其中唯一需要修改就是<code>admin.pub</code>文件。这个文件的内容应该是您自己使用ssh-keygen产生的公钥文件。您可以直接替换这个文件的内容，也可以完全删除这个文件并用自己的文件代替。如果您不想使用<code>admin.pub</code>这个名称，也可以改成任意名称，但一定要同步修改<code>Dockerfile</code>里的相关内容。</p>
+
+<p>在修改好这个文件后，就可以直接运行构建命令了：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>docker build -t gitolite .
+</code></pre></div>
+<h2>使用</h2>
+
+<hr>
+
+<p><em>注意：这里仅介绍容器本身的使用，Gitolite的使用请自行参考<a href="https://github.com/sitaramc/gitolite#readme">相关手册</a></em></p>
+
+<h3>准备</h3>
+
+<p>在使用这个容器之前，首先要在主机准备一个空目录，用以存储Git仓库的内容。在脚本中默认是使用<code>/opt/git</code>。</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>sudo mkdir -p /opt/git
+<span class="nv">$ </span>sudo chown <span class="nv">$USER</span>:<span class="nv">$USER</span> /opt/git
+</code></pre></div>
+<p>记住一定要把这个目录的读写权限赋给运行容器的用户。</p>
+
+<p>您也可以选择别的目录，但需要同步修改<code>gitolite</code>这个脚本中的相关部分。</p>
+
+<h3>运行</h3>
+
+<p>运行这个容器也很简单,直接用项目中自带的<code>gitolite</code>这个脚本就可以了：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">./gitolite start
+</code></pre></div>
+<p>这个脚本是基于我写的<a href="http://betacz.com/2014/05/29/docker-app-script-template/">Docker应用管理脚本模板</a>制作的，如有需要，也可自行修改。</p>
+
+<h3>测试</h3>
+
+<p>现在，Gitolite服务已经顺利跑起来了，可以测试一下:</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">git clone ssh://git@localhost:22222/testing
+</code></pre></div>
+<p>如果在这一步发生错误，那可能是您改动了<code>gitolite</code>脚本的相关配置，请仔细检查一下。</p>
+
+<h3>额外配置rc文件</h3>
+
+<p>这个Gitolite服务器使用的是默认配置。如果您想自定义一此选项，只需要修改<code>/opt/git/gitolite.rc</code>这个配置文件即可。 这个文件是在首次启动服务器时，从容器内的<code>~/.gitolite.rc</code>文件复制出来的（见<code>start.sh</code>）。</p>
+
+<p>在修改这个文件后，需要重启一下容器才能生效:</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>./gitolite stop <span class="o">&amp;&amp;</span> ./gitolite start
+</code></pre></div>
+<h3>容器被删除了?</h3>
+
+<p>如果容器被删除了（使用<code>docker rm</code>或<code>./gitolite remove</code>)，那么可以用<code>./gitolite start</code>重新启动。但启动完成后，必须要重新推送一下<code>gitolite-admin</code>这个仓库。如下所示：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">~/gitolite-admin<span class="nv">$ </span>git push -f
+</code></pre></div>
+<p>在您把Gitolite迁移到其它主机上时，也需要如此操作。</p>
+
+  ]]></description>
+</item>
+
+
+	<item>
+  <title>当流浪者(Vagrant)遇见码头工人(Docker): 实战</title>
+  <link>http://betacz.com/2014/05/21/vagrant-met-docker-2/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-05-21T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/05/21/vagrant-met-docker-2/</guid>
+  <description><![CDATA[
+     <div class="img thumbnail pull-right">
+    <img src="http://betacz.com/images/articles/docker/docker-top-logo.png" />
+    
+</div>
+
+<div class="img thumbnail pull-left">
+    <img src="http://betacz.com/images/articles/vagrant/logo_vagrant.png" />
+    
+</div>
+
+<p>要使用Vagrant与Docker共同创建一个开发环境，并不是一件容易的事情。特别是在国内这种网络环境中，更是平添了一层难度。官方的演示与文档中，也基本是将Docker provider作为测试或Stage环境来使用，对于创建开发环境时会遇到的问题几乎没有涉及。在本文中，笔者将详细讲述使用Docker provider创建一个完整的Rails开发环境的全过程。对于其它框架或语言的开发者，此过程也基本相似。</p>
+
+<div class='panel seriesNote'><p>本文是《<a href='http://betacz.com/series/当流浪者(Vagrant)遇见码头工人(Docker)'>当流浪者(Vagrant)遇见码头工人(Docker)</a>》系列中的第2篇（共2篇）。</p><ul><li> 前一篇 - <a href='http://betacz.com/2014/05/20/vagrant-met-docker/'>当流浪者(Vagrant)遇见码头工人(Docker): 初见</a></li></ul></div>
+
+<h2>一、前提</h2>
+
+<hr>
+
+<p>在阅读本文之前，您需要有一定的Vagrant和Docker的使用经验。在涉及到这两个软件本身的知识时，文中不会作详细解释。</p>
+
+<p>在您的物理机器上，必须已经安装了下列的软件，并能正常使用：</p>
+
+<ul>
+<li>Vagrant &gt;= 1.6.2</li>
+<li>VirtualBox &gt;= 4.10.0</li>
+<li>vagrant-vbguest插件 (建议，可选)</li>
+<li>Docker &gt;= 0.9.0 (仅当Docker原生支持时需要, Mac OS X与Windows用户不可安装)</li>
+</ul>
+
+<h2>二、创建 HOST VM</h2>
+
+<hr>
+
+<p><em>注：理论上Linux用户可以跳过此节，但由于团队中很可能有成员使用其它的操作系统，所以还是看一下吧。</em></p>
+
+<p>对于Docker不能原生支持的平台，如Mac OS X或Windows，Vagrant会自动在后台启动一个host VM来运行Docker。这个host VM，说到底就是一个VirtualBox的虚拟机，Dokcer将安装在这个虚拟机上，所有Vagrant的命令，也会自动转发到这个虚拟机的Docker中。对用户而言，这个过程是透明的，Vagrant将这个VM隐藏在了幕后，使所有平台的用户能获得一致操作界面。</p>
+
+<p>Vagrant自带了一个基于boot2docker的host VM。它具有体积小，速度快，无需配置等优点。但不幸的是，有两个致命的缺点使它在开发环境中完全无法使用：</p>
+
+<ol>
+<li>在这个host VM中启动Docker容器时，会自动连接到<a href="https://index.docker.io">index.docker.io</a>来获取相应的镜像。但由于一堵墙的存在，这是不可能成功的。虽然最终可以通过进入这个虚拟机并配置代理来fq，但是这个操作不能自动化，且技术门槛较高，对于一个开箱即用的统一开发环境来说，这是无法接受的。</li>
+<li>这个host VM与物理主机使用的文件夹同步方式是rsync。这意味着这个同步是单向，只能是在物理机上修改的内容同步至虚拟机中。对于测试或模拟生产环境来说，这种同步方式完全可行。但对于开发环境，必须要有双向同步的能力。</li>
+</ol>
+
+<p>为了解决这两个问题，需要自行创建一个host VM给Docker provider使用。创建host VM的过程其实很简单。就是用Vagrant创建一个正常的基于VirtualBox的虚拟机，然后在里面安装好Docker软件。为了对付国内的网络情况，可以在这个虚拟机里fq后，下载好所需的常用Docker镜像。然后重新打包成一个Box即可。其过程不再赘述。</p>
+
+<p>为了节省大家的时间和精力，笔者已经创建好一个host VM: <a href="http://yun.baidu.com/share/link?shareid=566951005&amp;uk=289275890">docker-host-01.box</a>，可以直接下载使用。</p>
+
+<p>这个VM的近1G大小，具有如下特性：</p>
+
+<ul>
+<li>操作系统为 ubuntu 14.04</li>
+<li>时区为 Asia/Shanghai</li>
+<li>已安装 Docker 0.11.1</li>
+<li>已包含下列Docker Image:
+
+<ul>
+<li>ubuntu:12.04</li>
+<li>ubuntu:14.04</li>
+<li>phusion/baseimage:0.9.10</li>
+<li>busybox</li>
+<li>svendowideit/ambassador</li>
+<li>dockerfile/redis</li>
+</ul></li>
+</ul>
+
+<h2>三、创建开发环境</h2>
+
+<hr>
+
+<p>在准备好上述的host VM之后，就可以正式开始创建Rails开发环境了。首先要创建一系列的目录和文件来配置Vagrant，告诉它应该如何启动Docker容器。</p>
+
+<p>该示例项目的完整内容可以从我的<a href="https://github.com/hlj/vagrant-docker">GitHub项目</a>中获取。</p>
+
+<h3>1. 目录结构</h3>
+
+<p>首先看一下基本的目录结构：</p>
+<div class="highlight"><pre><code class="text language-text" data-lang="text">vagrant-docker/
+|-- Vagrantfile            # 主要的Vagrant配置文件，定义了Docker容器
+|-- docker_host/           # 包含host VM的配置
+|   |-- Vagrantfile        # host VM配置文件
+|-- dockerfiles/           # 包含所有Dockerfile的定义
+|   |-- rails/             # 包含rails容器配置
+|       |-- Dockefile      # rails容器的构建文件
+|       |-- ...
+|-- demo_app/              # rails项目的主目录
+|   |-- ...
+|-- ...
+</code></pre></div>
+<p>目录结构比较简单。其中<code>demo_app</code>中包含了一个正常的rails项目，与其它普通的rails项目没有区别。<code>docker_host</code>则定义了host VM的配置。<code>dockerfiles</code>则应该包含所有该项目中用到的Docker容器的构建文件。</p>
+
+<h3>2. docker_host/Vagrantfile</h3>
+
+<p>这个文件中定义了host VM。它是基于上面所说的docker-host-01.box创建的，文件内容为：</p>
+<div class="highlight"><pre><code class="ruby language-ruby" data-lang="ruby"><span class="no">VAGRANTFILE_API_VERSION</span> <span class="o">=</span> <span class="s2">&quot;2&quot;</span>
+
+<span class="no">Vagrant</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="no">VAGRANTFILE_API_VERSION</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">box</span> <span class="o">=</span> <span class="s2">&quot;docker-host-01&quot;</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">hostname</span> <span class="o">=</span> <span class="s2">&quot;dh01&quot;</span>
+
+  <span class="c1"># Forward port for rails app</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">network</span> <span class="s2">&quot;forwarded_port&quot;</span><span class="p">,</span> <span class="ss">guest</span><span class="p">:</span> <span class="mi">3000</span><span class="p">,</span> <span class="ss">host</span><span class="p">:</span> <span class="mi">3000</span>
+  <span class="c1"># Forward port for container&#39;s ssh</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">network</span> <span class="s2">&quot;forwarded_port&quot;</span><span class="p">,</span> <span class="ss">guest</span><span class="p">:</span> <span class="mi">2244</span><span class="p">,</span> <span class="ss">host</span><span class="p">:</span> <span class="mi">2244</span>
+
+  <span class="c1"># Fixed the mapping of the app&#39;s folder</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">synced_folder</span> <span class="s2">&quot;../&quot;</span><span class="p">,</span> <span class="s2">&quot;/var/lib/docker_root&quot;</span>
+
+<span class="k">end</span>
+</code></pre></div>
+<p>最后三行配置的作用需要解释一下。</p>
+
+<p>前面说过，在使用host VM时，Docker容器实际上是运行在这个虚拟机里面的。相当于是盗梦空间里的第二层梦境。在容器运行时使用<code>-p</code> 选项映射至主机的网络端口，实际上只是暴露给了host VM，所以需要在host VM上再进行一次转发，这样物理机上的程序才能直接访问到Docker容器的端口。</p>
+
+<p>在这里，<code>3000</code>端口是Rails开发时的默认web端口。<code>2244</code>则是容器内的<code>22</code>端口的映射。</p>
+
+<p>最后一行配置的意义则是为了应对目前Vagrant 1.6.2在处理文件夹同步上的问题。在使用host VM的情况下，项目的当前目录首先会被Vagrant自动映射为host VM上的一个临时目录。然后再通过Docker容器的Volumes参数将这个目录映射到容器内的<code>/vagrant</code>目录。但是这种实现带来了一个问题: 如果停止这个host VM再重新启动（halt or reload），那么这个临时目录的名称会改变。但由于容器并不会自动重新创建，因此容器内的<code>/vagrant</code>就对应到了一个不存在的目录。只有当reload或destroy后重建Docker容器时，才会重新映射到正确的位置。为了解决这个问题，这里使用了一个变通方法 ，就是将项目的根目录指定同步到一个固定的位置（/var/lib/docker_root），这样映射关系就不会受到host VM重起的影响了。</p>
+
+<p>最后要说明的是，如果物理主机上能够直接运行Docker，那么Vagrant默认并不会使用host VM，因此这里配置不会影响原生Docker容器的运行。</p>
+
+<h3>3. /dockerfiles/rails/Dockerfile</h3>
+
+<p>这个文件是Rails容器自动化构建脚本。Vagrant的Dcoker provider支持直接从镜像启动容器和从Dockerfile构建容器两种方式。一般对于需要定制化的容器，肯定是需要使用Dockerfile的。</p>
+
+<p>这个文件的内容比较长，下面将从头至尾分段介绍。</p>
+
+<h4>3.1 声明基础镜像</h4>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">FROM phusion/baseimage:0.9.10
+<span class="c"># Set correct environment variables.</span>
+ENV HOME /root
+<span class="c"># Regenerate SSH host keys</span>
+RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
+</code></pre></div>
+<p>第一行<code>FROM phusion/baseimage:0.9.10</code>声明了此容器是基于 phusion/baseimage 这个镜像的 0.9.10 版本创建的。之所以要使用这个镜像，而不是常用的 ubuntu，主要是为了使用它内建的ssh服务及init脚本支持能力。如果要自行来配置这样一个镜像，需要花费大量的时间与精力的。</p>
+
+<p>紧接着的两行脚本是 phusion/baseimage 推荐使用的，直接引用即可。详细信息可参考<a href="https://github.com/phusion/baseimage-docker">官方网站</a>。</p>
+
+<h4>3.2 本地配置</h4>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># Change the timezone</span>
+RUN cp -f /usr/share/zoneinfo/PRC /etc/localtime
+<span class="c"># Set the software sources to the fastest server.</span>
+ADD sources.list /etc/apt/sources.list
+RUN apt-get update
+</code></pre></div>
+<p>作为国内用户，当然要把时区和软件源都设置为国内了。这里需要在<code>dockerfiles/rails</code>下创建一个<code>sources.list</code>文件，里面的内容就是您喜爱的任意软件源配置。</p>
+
+<h4>3.3 安装常用软件与ruby 2.1</h4>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># Install basic tools and libraries</span>
+RUN apt-get install -q -y ca-certificates git vim
+RUN apt-get install -q -y libsqlite3-dev
+
+<span class="c"># Install ruby dependencies</span>
+RUN apt-get update <span class="o">&amp;&amp;</span> apt-get install -y <span class="se">\</span>
+      build-essential <span class="se">\</span>
+      zlib1g-dev <span class="se">\</span>
+      libssl-dev <span class="se">\</span>
+      libreadline6-dev <span class="se">\</span>
+      libyaml-dev
+
+<span class="c"># Install ruby from source and cleanup afterward (from murielsalvan/ruby)</span>
+ADD http://ruby.taobao.org/mirrors/ruby/ruby-2.1.2.tar.gz /tmp/
+RUN <span class="nb">cd</span> /tmp <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      tar -xzf ruby-2.1.2.tar.gz <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      <span class="nb">cd </span>ruby-2.1.2 <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      ./configure <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      make <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      make install <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      <span class="nb">cd</span> .. <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      rm -rf ruby-2.1.2 <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      rm -f ruby-2.1.2.tar.gz
+
+<span class="c"># Set the gem sources to ruby.taobao.org</span>
+RUN gem sources --remove https://rubygems.org/
+RUN gem sources -a https://ruby.taobao.org/
+
+<span class="c"># Install bundler</span>
+RUN gem install bundler --no-ri --no-rdoc
+</code></pre></div>
+<p>这一段虽然很长，但功能很简单。就是安装一些常用的开发工具、Ruby 2.1.2及bundler。当然，这里也做了一些本地化处理，将gem source改为taobao的镜像源。</p>
+
+<h4>3.4 配置ssh key</h4>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># Add ssh authorized key</span>
+ADD docker_vm.pub /tmp/my_key
+RUN cat /tmp/my_key &gt;&gt; /root/.ssh/authorized_keys <span class="o">&amp;&amp;</span> rm -f /tmp/my_key
+</code></pre></div>
+<p>phusion/baseimage已经内置了ssh服务。但并有配置ssh keys。为了能用ssh登录进容器，需要用ssh-keygen创建一对自己的公私密钥。并且将公钥配置进容器中。</p>
+
+<h4>3.5 处理环境变量</h4>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># dump environment variables for container&#39;s link, required in development.</span>
+ADD dump_link_env.sh /etc/my_init.d/dump_link_env.sh
+RUN chmod a+x /etc/my_init.d/*
+<span class="c"># Allow sshd load these environment variables</span>
+RUN <span class="nb">echo</span> <span class="s1">&#39;PermitUserEnvironment yes&#39;</span> &gt;&gt; /etc/ssh/sshd_config
+</code></pre></div>
+<p>这一段是比较关键的部分。在Docker容器使用link功能连接时，会在发起连接的容器内设置一系列的环境变量，以便让程序通过这些环境变更与另一个容器交互。在生产环境中，一般一个容器对应一个应用，而这个应用就是这个容器的唯一进程，所以不需要做特别处理。但是在开发环境中，我们会通过ssh登录到容器中，而ssh会话中并不包括这些环境变量。因此，需要在容器启动时将这些环境变更保存下来，并让ssh去读取这个文件。</p>
+
+<p>这里所用的脚本<code>dump_link_env.sh</code>内容如下：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c">#! /bin/sh</span>
+env <span class="p">|</span> grep _ &gt;&gt; /etc/environment
+env <span class="p">|</span> grep _ &gt; /root/.ssh/environment
+</code></pre></div>
+<h4>3.6 清理并设置启动命令</h4>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># Clean up APT when done.</span>
+RUN apt-get clean <span class="o">&amp;&amp;</span> rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+<span class="c"># Use baseimage-docker&#39;s init system.</span>
+CMD <span class="o">[</span><span class="s2">&quot;/sbin/my_init&quot;</span><span class="o">]</span>
+</code></pre></div>
+<p>最后两行比较简单，就不用多做解释了。</p>
+
+<h3>4. /Vagrantfile</h3>
+
+<p>现在host VM与Dockerfile都准备好了。只剩下最终Docker provider的配置了。</p>
+
+<p>在项目根目录下的<code>Vagrantfile</code>里，定义了两个Docker容器。一个是Rails开发环境，另一个则是为了演示link功能而创建的redis容器。</p>
+
+<p>文件内容如下:</p>
+<div class="highlight"><pre><code class="ruby language-ruby" data-lang="ruby"><span class="c1"># Force the provider so we don&#39;t have to type in --provider=docker all the time</span>
+<span class="no">ENV</span><span class="o">[</span><span class="s1">&#39;VAGRANT_DEFAULT_PROVIDER&#39;</span><span class="o">]</span> <span class="o">=</span> <span class="s1">&#39;docker&#39;</span>
+
+<span class="no">VAGRANTFILE_API_VERSION</span> <span class="o">=</span> <span class="s2">&quot;2&quot;</span>
+
+<span class="no">Vagrant</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="no">VAGRANTFILE_API_VERSION</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">define</span> <span class="s2">&quot;db&quot;</span> <span class="k">do</span> <span class="o">|</span><span class="n">db1</span><span class="o">|</span>
+   <span class="n">db1</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">provider</span> <span class="s2">&quot;docker&quot;</span> <span class="k">do</span> <span class="o">|</span><span class="n">d</span><span class="o">|</span>
+     <span class="n">d</span><span class="o">.</span><span class="n">vagrant_vagrantfile</span> <span class="o">=</span> <span class="s2">&quot;docker_host/Vagrantfile&quot;</span>
+     <span class="n">d</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="s2">&quot;dockerfile/redis&quot;</span>
+     <span class="n">d</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;demo_db&quot;</span>
+   <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">define</span> <span class="s2">&quot;rails&quot;</span> <span class="k">do</span> <span class="o">|</span><span class="n">rails</span><span class="o">|</span>
+    <span class="n">rails</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">provider</span> <span class="s2">&quot;docker&quot;</span> <span class="k">do</span> <span class="o">|</span><span class="n">d</span><span class="o">|</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">vagrant_vagrantfile</span> <span class="o">=</span> <span class="s2">&quot;docker_host/Vagrantfile&quot;</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">build_dir</span> <span class="o">=</span> <span class="s2">&quot;dockerfiles/rails&quot;</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">ports</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;3000:3000&quot;</span><span class="p">,</span> <span class="s2">&quot;2244:22&quot;</span><span class="o">]</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">create_args</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;-h=rails_vm&quot;</span><span class="o">]</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">link</span> <span class="s2">&quot;demo_db:redis&quot;</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">has_ssh</span> <span class="o">=</span> <span class="kp">true</span>
+      <span class="c1"># Mapping to the host, only need in Host VM.</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">volumes</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;/var/lib/docker_root:/vagrant&quot;</span><span class="o">]</span>
+    <span class="k">end</span>
+
+    <span class="c1"># Use own key file</span>
+    <span class="n">rails</span><span class="o">.</span><span class="n">ssh</span><span class="o">.</span><span class="n">private_key_path</span> <span class="o">=</span> <span class="s2">&quot;dockerfiles/docker_vm.key&quot;</span>
+    <span class="n">rails</span><span class="o">.</span><span class="n">ssh</span><span class="o">.</span><span class="n">username</span> <span class="o">=</span> <span class="s2">&quot;root&quot;</span>
+    <span class="n">rails</span><span class="o">.</span><span class="n">ssh</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="s2">&quot;22&quot;</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div>
+<p>在这个文件里，需要特别说明的主要是&quot;rails&quot;容器的配置。</p>
+
+<ul>
+<li><p><code>d.vagrant_vagrantfile = &quot;docker_host/Vagrantfile&quot;</code> 表示容器如果需要使用host VM,应该使用这个配置文件来启动。</p></li>
+<li><p><code>d.build_dir = &quot;dockerfiles/rails&quot;</code>， 指示dockerfile文件所在位置。 </p></li>
+<li><p><code>d.ports = [&quot;3000:3000&quot;, &quot;2244:22&quot;]</code>，容器对外开放的端口映射。这里的端口号要与host VM的配置一致。</p></li>
+<li><p><code>d.link &quot;demo_db:redis&quot;</code>， 表示将demo_db这个容器以redis这个名称连接到本容器内。</p></li>
+<li><p>`d.volumes = [&quot;/var/lib/docker_root:/vagrant&quot;]， 将host VM中自定义的同步目录映射到/vagrant。实际在不使用host VM时，是不需要这个配置的。但为了避免不同平台使用不同的配置文件，还是统一加上了。</p></li>
+<li><p><code>rails.ssh.private_key_path = &quot;dockerfiles/docker_vm.key&quot;</code>，这里配置了当使用&#39;vagrant ssh rails&#39;登录时引用的key文件。这个文件必须要和Dockerfile里面的文件是对应的。</p></li>
+<li><p><code>rails.ssh.port = &quot;22&quot;</code>，指定<code>vagrant ssh</code>时使用的端口。这个配置原本是不需要的，属于<a href="https://github.com/mitchellh/vagrant/issues/3799">当前版本的Bug</a>。在最新的源码中已经修正了。</p></li>
+</ul>
+
+<h2>四、使用</h2>
+
+<hr>
+
+<p>现在整个开发环境已经就绪了。让我们开动吧。</p>
+
+<h3>1. 启动</h3>
+
+<p>将终端窗口的当前目录切换为项目的根目录，并执行下列命令：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant up
+</code></pre></div>
+<p>Vagrant开始启动Docker容器了，在我的Linux上，输出如下所示:</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="o">==</span>&gt; rails: Building the container from a Dockerfile...
+<span class="o">==</span>&gt; db: Creating the container...
+    db:   Name: demo_db
+    db:  Image: dockerfile/redis
+    db: Volume: /home/beta/vagrant/vagrant-docker:/vagrant
+    db:   Port: 2222:22
+    db:  
+    db: Container created: <span class="nv">336b9c3186273eb1</span>
+<span class="o">==</span>&gt; db: Starting container...
+<span class="o">==</span>&gt; db: Provisioners will not be run since container doesn<span class="err">&#39;</span>t support SSH.
+    rails: Image: <span class="nv">3ef1f2cb3b9b</span>
+<span class="o">==</span>&gt; rails: Fixed port collision <span class="k">for </span><span class="nv">22</span> <span class="o">=</span>&gt; 2222. Now on port 2200.
+<span class="o">==</span>&gt; rails: Creating the container...
+    rails:   Name: vagrant-docker_rails_1400658212
+    rails:  Image: 3ef1f2cb3b9b
+    rails: Volume: /var/lib/docker_root:/vagrant
+    rails: Volume: /home/beta/vagrant/vagrant-docker:/vagrant
+    rails:   Port: 2200:22
+    rails:   Port: 3000:3000
+    rails:   Port: 2244:22
+    rails:   Link: demo_db:redis
+    rails:  
+    rails: Container created: <span class="nv">a1968cc7caf036c7</span>
+<span class="o">==</span>&gt; rails: Starting container...
+<span class="o">==</span>&gt; rails: Waiting <span class="k">for </span>machine to boot. This may take a few minutes...
+    rails: SSH address: 172.17.0.3:22
+    rails: SSH username: root
+    rails: SSH auth method: private key
+    rails: Warning: Connection refused. Retrying...
+<span class="o">==</span>&gt; rails: Machine booted and ready!
+</code></pre></div>
+<p>首次启动时，因为了构建Dockerfile,会需要较长的时间，请耐心等待。</p>
+
+<p>注意这里有一个奇怪的问题。明明redis容器没有开放22端口，也没有配置为使用ssh。但Vagrant还是为它转发了22端口。其实这也是一个<a href="https://github.com/mitchellh/vagrant/issues/3857">程序Bug</a>，现在已经被修正了。</p>
+
+<p>另外需要注意的是，如果您使用的是Mac OS X或Windows,那么首次启动时会先创建host VM,需要花费更多时间。输出内容也会更多。</p>
+
+<h3>2. 创建Rails项目</h3>
+
+<p>因为我们在Rails容器构建过程中并没有安装rails gem. 所以，在首次启动完成后，这是最先要做的：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant ssh rails
+root@rails_vm:~# gem install rails --no-ri
+root@rails_vm:~# <span class="nb">cd</span> /vagrant/
+root@rails_vm:/vagrant# rails new demo_app
+</code></pre></div>
+<p>在创建demo_app后，要把gem安装到vendor/bundle中。这么做的原因是因为Docker provider与其它provider不同，当使用&#39;Vagrant reload rails&#39;来重载rails容器时，Vagarnt会按照Dockerfile重新构建一个新的容器。而我们并不希望每次重新构建容器时都需要重新安装所有gem. 因此，需要执行下面的命令:</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">root@rails_vm:/vagrant/demo_app# bundle install --path<span class="o">=</span>vendor/bundle/ --binstubs<span class="o">=</span>.bin
+</code></pre></div>
+<p>同时记得把vendor/bundle和.bin加入.gitignore。</p>
+
+<h3>3. 测试应用</h3>
+
+<p>现在可以运行demo_app了:</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">root@rails_vm:/vagrant/demo_app# .bin/rails <span class="nv">s</span>
+<span class="o">=</span>&gt; Booting <span class="nv">WEBrick</span>
+<span class="o">=</span>&gt; Rails 4.1.1 application starting in development on http://0.0.0.0:3000
+<span class="o">=</span>&gt; Run <span class="sb">`</span>rails server -h<span class="sb">`</span> <span class="k">for </span>more startup <span class="nv">options</span>
+<span class="o">=</span>&gt; Notice: server is listening on all interfaces <span class="o">(</span>0.0.0.0<span class="o">)</span>. Consider using 127.0.0.1 <span class="o">(</span>--binding option<span class="o">)</span>
+<span class="o">=</span>&gt; Ctrl-C to shutdown server
+<span class="o">[</span>2014-05-21 16:03:12<span class="o">]</span> INFO  WEBrick 1.3.1
+<span class="o">[</span>2014-05-21 16:03:12<span class="o">]</span> INFO  ruby 2.1.2 <span class="o">(</span>2014-05-08<span class="o">)</span> <span class="o">[</span>x86_64-linux<span class="o">]</span>
+<span class="o">[</span>2014-05-21 16:03:12<span class="o">]</span> INFO  WEBrick::HTTPServer#start: <span class="nv">pid</span><span class="o">=</span>54 <span class="nv">port</span><span class="o">=</span>3000
+</code></pre></div>
+<p>打开您主机上的浏览器，转到<a href="http://localhost:3000">http://localhost:3000</a>, 熟悉的画面又出现在眼前...</p>
+
+<h3>4. 测试link</h3>
+
+<p>Rails已经顺利跑起来了，现在该看看link的redis容器是不是能正常使用了。</p>
+
+<p>首先检查一下环境变量:</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">root@rails_vm:~# env <span class="p">|</span> grep REDIS
+<span class="nv">REDIS_PORT_6379_TCP_PROTO</span><span class="o">=</span>tcp
+<span class="nv">REDIS_NAME</span><span class="o">=</span>/vagrant-docker_rails_1400658212/redis
+<span class="nv">REDIS_PORT_6379_TCP_ADDR</span><span class="o">=</span>172.17.0.2
+<span class="nv">REDIS_PORT_22_TCP_ADDR</span><span class="o">=</span>172.17.0.2
+<span class="nv">REDIS_PORT_6379_TCP_PORT</span><span class="o">=</span>6379
+<span class="nv">REDIS_PORT_6379_TCP</span><span class="o">=</span>tcp://172.17.0.2:6379
+<span class="nv">REDIS_PORT</span><span class="o">=</span>tcp://172.17.0.2:22
+<span class="nv">REDIS_PORT_22_TCP_PORT</span><span class="o">=</span>22
+<span class="nv">REDIS_PORT_22_TCP</span><span class="o">=</span>tcp://172.17.0.2:22
+<span class="nv">REDIS_PORT_22_TCP_PROTO</span><span class="o">=</span>tcp
+</code></pre></div>
+<p>可以看到变量已经设置好了。下一步是安装redis client：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">root@rails_vm:~# gem install redis --no-ri --no-rdoc
+Fetching: redis-3.0.7.gem <span class="o">(</span>100%<span class="o">)</span>
+Successfully installed redis-3.0.7
+1 gem installed
+</code></pre></div>
+<p>开始测试:</p>
+<div class="highlight"><pre><code class="ruby language-ruby" data-lang="ruby"><span class="n">root</span><span class="vi">@rails_vm</span><span class="ss">:~</span><span class="c1"># irb</span>
+<span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">001</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="nb">require</span> <span class="s1">&#39;redis&#39;</span>
+<span class="o">=&gt;</span> <span class="kp">true</span>
+<span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">002</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">redis</span> <span class="o">=</span> <span class="no">Redis</span><span class="o">.</span><span class="n">new</span> <span class="ss">host</span><span class="p">:</span> <span class="no">ENV</span><span class="o">[</span><span class="s2">&quot;REDIS_PORT_6379_TCP_ADDR&quot;</span><span class="o">]</span>
+<span class="o">=&gt;</span> <span class="c1">#&lt;Redis client v3.0.7 for redis://172.17.0.2:6379/0&gt;</span>
+<span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">003</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">redis</span><span class="o">.</span><span class="n">set</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;Beta CZ&quot;</span>
+<span class="o">=&gt;</span> <span class="s2">&quot;OK&quot;</span>
+<span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">004</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">redis</span><span class="o">.</span><span class="n">get</span> <span class="s2">&quot;name&quot;</span>
+<span class="o">=&gt;</span> <span class="s2">&quot;Beta CZ&quot;</span>
+</code></pre></div>
+<p>一切正常。</p>
+
+<h3>5. 配置 Rubymine Remote Ruby SDK</h3>
+
+<p>前面所有操作都是远程登录到容器中做的。但Vagrant的意义不应该是在本机写代码，在虚拟机中运行和测试吗？
+的确如此，下面就将介绍如何使用Rubymine来实现这一点。</p>
+
+<p>Rubymine可以说是目前最好的用于开发Ruby应用的IDE。在很早的时候就提供了对远程调试的支持。现在更是直接支持自动Vagrant虚拟机。但是因为Docker容器的特殊性，在使用host VM时，Rubymine并不能自动探测出正确的配置，需要自行设置。</p>
+
+<p>Remote Ruby SDK的配置并不复杂。在 project setting中只需要配置两个地方。下面就以Rubymine 6.3为例，给出配置内容。</p>
+
+<p>首先需要配置一个<code>deployment</code>环境，按下图配置即可：</p>
+
+<div class="imgblock">
+<div class="noalignouter">
+    <div class="noaligninner">
+
+<div class="img thumbnail alignnone">
+    <img src="http://betacz.com/images/articles/vagrant/rubymine-cfg1.png" />
+    
+</div>
+
+<p></div>
+</div>
+<div class="clearfix"></div>
+</div></p>
+
+<p>然后按下图配置主机和虚拟机的目录映射：</p>
+
+<div class="imgblock">
+<div class="noalignouter">
+    <div class="noaligninner">
+
+<div class="img thumbnail alignnone">
+    <img src="http://betacz.com/images/articles/vagrant/rubymine-cfg2.png" />
+    
+</div>
+
+<p></div>
+</div>
+<div class="clearfix"></div>
+</div></p>
+
+<p>最后在<code>Ruby SDK and Gems</code>中按下图配置一个Remote SDK(使用 &quot;Fill from deployment server settting&quot;):</p>
+
+<div class="imgblock">
+<div class="noalignouter">
+    <div class="noaligninner">
+
+<div class="img thumbnail alignnone">
+    <img src="http://betacz.com/images/articles/vagrant/rubymine-cfg3.png" />
+    
+</div>
+
+<p></div>
+</div>
+<div class="clearfix"></div>
+</div></p>
+
+<p>Everyting is OK!</p>
+
+<h2>小结</h2>
+
+<hr>
+
+<p>在本篇中，我们用Vagrant和Docker provider,创建了一个完整的Rails开发环境。对于Linux平台的用户来说，Docker provider带来性能与效率的提升是非常明显的。而对于其它平台的用户，虽然在性能上并不能获得显著的提高，但至少可以从开发环境与生产环境一致性中获得益处。</p>
+
+<h3>参考</h3>
+
+<ul>
+<li><a href="https://www.vagrantup.com/blog/feature-preview-vagrant-1-6-docker-dev-environments.html">Feature Preview: Docker-Based Development Environments</a></li>
+<li><a href="http://www.vagrantup.com/">Vagrant官方网站</a></li>
+<li><a href="https://www.docker.io/">Docker官方网站</a></li>
+</ul>
+
+  ]]></description>
+</item>
+
+
+	<item>
+  <title>当流浪者(Vagrant)遇见码头工人(Docker): 初见</title>
+  <link>http://betacz.com/2014/05/20/vagrant-met-docker/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-05-20T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/05/20/vagrant-met-docker/</guid>
+  <description><![CDATA[
+     <div class="img thumbnail pull-right">
+    <img src="http://betacz.com/images/articles/docker/docker-top-logo.png" />
+    
+</div>
+
+<div class="img thumbnail pull-left">
+    <img src="http://betacz.com/images/articles/vagrant/logo_vagrant.png" />
+    
+</div>
+
+<p>使用<strong>Vagrant</strong>来为项目提供统一的开发与测试环境，已成为了许多开发团队的标准流程。Vagrant能够为开发者在本机上提供与生产环境几乎一致的开发环境,也能为使用不同操作系统平台（Linux，MAC OS，Windows）的团队成员提供一致开发体验。</p>
+
+<div class='panel seriesNote'><p>本文是《<a href='http://betacz.com/series/当流浪者(Vagrant)遇见码头工人(Docker)'>当流浪者(Vagrant)遇见码头工人(Docker)</a>》系列中的第1篇（共2篇）。</p><ul><li> 后一篇 - <a href='http://betacz.com/2014/05/21/vagrant-met-docker-2/'>当流浪者(Vagrant)遇见码头工人(Docker): 实战</a></li></ul></div>
+
+<h2>背景</h2>
+
+<hr>
+
+<p>相对于Vagrant在开发中的使用，<strong>Docker</strong>则更关注于生产环境的虚拟化。它将应用及其依赖的其它应用，每一个都独立包装成独立自足的容器，其中包括特定的操作系统及其依赖的所有软件，解决了以前在生产部署中困扰我们的诸多难题。因此，自它发布以来，虽然还没有达到官方认为稳定的1.0版本，但还是有越来越多的人使用它来部署自己的应用。</p>
+
+<p>一般来说，在Vagrant中会使用VirtualBox等传统的虚拟机软件来作为提供者，以创建一个与生产环境相同的开发机器。这样在开发阶段就可以遇到并解决很多与生产环境相关的问题。然而，随着Docker的异军突起，这种方式开始变得尴尬，因为我们发现开发环境已经不能匹配生产环境了: 在开发时，程序使用本机的网络，与数据库直接通过本机端口连接，直接访问着主机的文件系统和其它资源并与其它程序共享这些资源；在生产中，程序则在Docker容器中运行，通过桥接网络与外界通信，与数据库通于Docker link方式进行连接，通过映射或数据容器访问主机资源且不与其它程序共享。另一方面，应用部署过程也与以前有了很大不同：以前是通过FTP，HTTP或SSH、Git等方式将代码上传至服务器再进行版本切换，应用重启等工作，在此过程中可能还要在生产服务器上进行诸如库文件更新等额外工作。而现在则是将应用直接打包成一个Docker镜像并推送到中心仓库，然后在服务器上下拉并直接启动最新的镜像。</p>
+
+<h2>解决方案</h2>
+
+<hr>
+
+<p>Vagrant的开发者很快意识到了这个问题。</p>
+
+<p>在1.4版本中，Vagrant引入了<a href="http://docs.vagrantup.com/v2/provisioning/docker.html">Docker Provision</a>。帮助开发者在虚拟机中自动安装Docker软件，并自动启动Docker容器。但此时，Vagrant对Docker的支持还是比较原始的。比如无法通过Vagrant的命令行直接管理Docker容器，也无法绕过虚拟机直接与容器通信。</p>
+
+<p>直到1.6版本发布，Vagrant终于引入<a href="http://docs.vagrantup.com/v2/docker/index.html">Docker provider</a>。至此，Docker才获得了与VirtrualBox，VMWare等传统虚拟机软件相等的地位。我们也才有可能在开发中使用Docker容器来构建与生产环境完全一致的开发测试环境。</p>
+
+<h2>优点与不足</h2>
+
+<hr>
+
+<p>使用Docker虚拟机作为开发环境至少有以下几个<strong>好处</strong>：</p>
+
+<ol>
+<li>节省磁盘空间： 因为Docker镜像具有共享与缓存机制，同时创建10个基于Ubuntu容器并不会比创建1个多花费多少空间。</li>
+<li>大幅减少内存与CPU占用: 传统虚拟机的明显缺点就是需要消耗大量内存与CPU，哪怕你只是启动了虚拟机，什么事情都不做，内存与CPU与照占不误。而Docker容器则轻量的多，基本上是应用使用多少内存，就占用多少内存，CPU的额外消耗也很少。</li>
+<li>性能提升： 传统虚拟机因为需要虚拟大部分硬件的关系，性能与主机有着较为明显的差距。而Docker则性能则与物理机相当接近。</li>
+<li>可以统一开发与部署环境。前提是你准备以Docker方式部署应用。</li>
+</ol>
+
+<p>然而，现实并不完美，Vagrant与Docker的结合并不是天衣无缝，一方面是Docker或Vagrant的问题，另一方面则是因为瓷器国的特色了。问题主要表现在以下几个方面：</p>
+
+<ol>
+<li>Docker目前只能运行在Linux 64bit的环境下，在其它平台上，Vagrant需要使用一个Host虚拟机来提供Docker的运行环境。因此，前面所说第2、3两个优点，对于使用Mac或Windows来开发的同学几乎不存在。</li>
+<li>以目前最新的1.6.2版本的Vagrant来说，其对于Docker provider的支持还有不少<a href="https://github.com/mitchellh/vagrant/issues?state=open">Bug</a>。</li>
+<li>因为伟大的墙存在，Vagrant默认的Docker Host VM基本上在国内处于不可用状态，需要自己创建这个虚拟机。</li>
+<li>使用Docker容器作为开发环境，与传统的虚拟机相比也有一些不便之处。</li>
+</ol>
+
+<h2>小结</h2>
+
+<hr>
+
+<p>在本篇中，笔者简要的介绍了Vagrant对Docker的支持情况。下一篇将以搭建一个Rails开发环境为例，介绍Docker provider的使用与技巧。</p>
+
+<h3>参考</h3>
+
+<ul>
+<li><a href="https://www.vagrantup.com/blog/feature-preview-vagrant-1-6-docker-dev-environments.html">Feature Preview: Docker-Based Development Environments</a></li>
+<li><a href="http://www.vagrantup.com/">Vagrant官方网站</a></li>
+<li><a href="https://www.docker.io/">Docker官方网站</a></li>
+</ul>
+
+  ]]></description>
+</item>
+
+
+	<item>
+  <title>Docker实战： 三、基本概念与术语</title>
+  <link>http://betacz.com/2014/05/09/docker-pratices-terms/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-05-09T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/05/09/docker-pratices-terms/</guid>
+  <description><![CDATA[
+     <div class="img thumbnail pull-right">
+    <img src="http://betacz.com/images/articles/docker/docker-top-logo.png" />
+    
+</div>
+
+<p>在前一章中，我们创建了一个Ubuntu虚拟机，并在这个虚拟机上安装了Docker服务器。于是，我们有了一个正在运行着的Docker服务器，还有一个名为docker的命令行客户端用于与Docker服务进行交互。</p>
+
+<p>现在你肯定已经跃跃欲试的想在命令行上输入点什么了。但是请先等一下，在进行下一步实际演练之前，我们还需要搞清楚一些基本的概念。</p>
+
+<div class='panel seriesNote'><p>本文是《<a href='http://betacz.com/series/Docker实战'>Docker实战</a>》系列中的第3篇（共3篇）。</p><ul><li> 前一篇 - <a href='http://betacz.com/2014/05/08/docker-pratices-install/'>Docker实战： 二、安装</a></li></ul></div>
+
+<h2>容器（Container）</h2>
+
+<hr>
+
+<p>Docker自称是一个<strong>容器</strong>引擎。那么这个<strong>“容器”</strong>到底是什么意思呢？</p>
+
+<p>我们知道，Docker最基础的能力就是能将一个应用打包成一个可以独立运行的、便携式的容器。这里“独立”的意思是除Docker自身外没有第三方软件依赖并且与其它容器完全隔离。“便携”的意思则是说容器可以在任何支持Docker的主机上自由的迁移，无论此主机是物理机器还是虚拟机，也无论是哪个Linux发行版本。在多台主机上分发与运行一个打包好的应用就像发动汽车那样简单。</p>
+
+<p>这听起来有些不可思议，因为一个应用的运行环境包括大量的外部依赖。就拿一个最简单的Web应用来说，就包括了指定版本的操作系统、相应语言环境或运行时库(Java、Ruby、PHP...)、数据库及其驱动(Oracle、Mysql、 Mongodb...)、HTTP服务器(Apache、Nginx...)、第三方软件包等等。另外，还需要大量特定的配置，如操作系统用户及组配置、目录权限设置、日志管理、网络端口配置等等。在传统的部署模式中，即使应用了自动配置工具如Puppet、Chef等，要在一台新机器上发布一个应用还是一件费时费力的工作。要是多个应用部署在一台主机上，那各种软件版本冲突、资源分配与协调等工作更是让人头疼。</p>
+
+<p>为了解决这个问题，Docker使用了类似虚拟机的技术，将OS、应用程序及其依赖软件、配置信息等都写入一个镜像（Image）文件. 但与普通虚拟机不同的是，这个Image的文件系统是只读的。也就说，打包一旦完成，那么里面所有内容都不可更改了。</p>
+
+<p>在启动一个镜像时，Docker首先读取这个镜像，然后在其上面再增加一个可读写层。这个可读写层，加上它所有的父镜像和诸如网络配置、唯一编码、内存与cpu限制等附加信息，被称为一个 <strong>容器（Container）</strong>。</p>
+
+<p>从面向对象的角度来看，可以把镜像视为类，容器则是这个类的实例。一个镜像可以产生出多个容器，而一个容器只能基于一个镜像创建。</p>
+
+<h3>容器的状态</h3>
+
+<p>容器具有“running”与&quot;exited&quot;两个状态。</p>
+
+<p>一个处于running状态的容器，除了包含前述的文件系统内容和附加信息外，还包括了所有运行中的进程树。这棵进程树与主机上运行的其它进程是相互隔离的。</p>
+
+<p>当容器内的进程运行结束，或者用户手工停止或杀死这个容器时，容器就处于“exited”状态。所有在容器运行时对文件系统的更改都将被保留，但内存状态将会丢失。我们可以稍后再次启动这个容器。</p>
+
+<h3>容器ID与命名</h3>
+
+<p>每一个容器都有一个唯一的ID，这个ID是一个由64个16进制字符组成的字符串。为了方便在命令中引用，我们一般只需使用前12个字符即可。</p>
+
+<p>为了更加便于记忆与引用，在创建容器时，我们也可以给容器命名，比如给将一个Mongodb容器命名为“mg-server“，或者将一个FTP容器命名为“my-file-server”等等。容器的名称可以随意指定，只要保证在这台主机上是唯一的即可。</p>
+
+<h2>镜像 (Image)</h2>
+
+<hr>
+
+<p>在Docker的术语中，镜像表示一个只读的文件系统层。</p>
+
+<p>Docker使用了一种被称为“联合文件系统 (Union File System)”的技术来创建容器。整个容器被视为拥有一个可读写的文件系统，但实际在内部，所有的修改操作都只是发生在最上面的可读写层，在下层的只读镜像中的原始文件是永远不变的。因为镜像不能被修改，所以它也没有状态。</p>
+
+<h3>父镜像（Parent Image）</h3>
+
+<p>除了基础镜像外，所有其它的镜像都是基于其它一个或多个镜像创建的。这些镜像被称为这个镜像的父镜像。每个镜像实际上只存储了相对于父镜像的变化部分。通过这样的技术，不同的应用容器可以共享相同的父镜像，极大的节约了系统资源。</p>
+
+<h3>基础镜像（Base Image）</h3>
+
+<p>没有任何父镜像的层称为基础镜像。绝大多数基础镜像都是包含了最基本的操作系统的镜像。在docker的中心注册库中包含了大多数流行的Linux发行版本的基础镜像。</p>
+
+<h3>镜像ID</h3>
+
+<p>每一个镜像都有一个唯一的ID，这个ID是一个由64个16进制字符组成的字符串。为了方便在命令中引用，我们一般只需使用前12个字符即可。</p>
+
+<h2>仓库（Repository）</h2>
+
+<hr>
+
+<p>一个仓库代表了一系列镜像的逻辑集合。</p>
+
+<p>为了方便的对镜像进行引用与版本管理，我们一般会把同一类镜像与一个仓库名称关联。在仓库中则使用标签（tag）来指向特定的镜像。</p>
+
+<p>可以把仓库视为某一类镜像的共同名称，而tag则是指向某一具体镜像的指针。</p>
+
+<p>在使用仓库名称引用镜像时，需要指定标签，如果没有给出标签名，则默认为<strong>latest</strong>.</p>
+
+<p>举例来说，假设我们开发了一个名为“new<em>app”的应用并创建了一个当前版本的镜像文件。我们现在可以把这个镜像文件与仓库名称“new</em>app<em>repo”关联(关联方法在下一节说明)。现在这个名为&quot;new</em>app<em>repo&quot;的仓库就保存了这个镜像及其所有父镜像的ID，并且创建了一个名为“latest”的标签，指向最新的那个镜像ID。过了几天，我们发布了new</em>app的新版本程序，并重新创建了最新版本的镜像文件。这时我们可以先把旧的镜像关联至“new<em>app</em>repo:old<em>version”这个标签，然后将新镜像关联至“new</em>app<em>repo:latest”。这样一来，我们的仓库“new</em>app<em>repo”就包含了应用&quot;new</em>app&quot;的所有版本，并且其默认标签“lastest”总是指向最新的应用程序版本。</p>
+
+<p>但在实际上，一个仓库内的镜像并不需要有实际的关联，我们完全可以把属于不同应用的镜像关联至同一个仓库，只是这样做似乎没有什么实际用处。</p>
+
+<h3>关联镜像至仓库名</h3>
+
+<p>目前有三种方法可以将一个镜像与仓库名关联：</p>
+
+<ol>
+<li>在构建时指定，如: docker build -t 镜像名称</li>
+<li>在提交一个容器至镜像时，如： docker commit 容器ID 镜像名称</li>
+<li>在为一个镜像ID打标签时，如： docker tag 镜像ID 镜像名称</li>
+</ol>
+
+<p>这里的镜像名称是指完全限定的镜像名（Fully Qualified Image Name (FQIN) 由三部分组成：</p>
+<div class="highlight"><pre><code class="text language-text" data-lang="text">[registry_hostname[:port]/][user_name/](repository_name[:version_tag])
+[注册库主机名:[端口]]/][用户名/]([仓库名][:版本标签])
+</code></pre></div>
+<p>其中只有仓库名是必须的。注册库默认为<code>index.docker.io:80</code>。 版本标签默认为<code>latest</code>。</p>
+
+<p>如果您创建一个新的仓库并想发布到中心注册库进行分享，那么必须给出用户名，因为默认的&#39;default&#39;用户名是为Docker官方镜像保留的。</p>
+
+<h2>标签（Tag）</h2>
+
+<hr>
+
+<p>标签指向仓库中的某个具体镜像。可以视为镜像在当前仓库中的命名指针。</p>
+
+<h2>注册库（Resgistry）</h2>
+
+<hr>
+
+<p>注册库是一个能响应Registry API的，包含了镜像仓库的托管服务。</p>
+
+<p>默认的注册库位于<a href="https://index.docker.io">https://index.docker.io</a>。这是一个Docker官方创建的公开注册库。任何人都可以在上面发布及下载共享的镜像。 </p>
+
+<p>您也可以创建私有注册库来托管您公司的私有仓库。</p>
+
+<p>注册库的主要作用是进行镜像的分享。我们可以把自己创建的镜像发布到注册库中，也可以从注册库中获取其他人创建的镜像。</p>
+
+  ]]></description>
+</item>
+
+
+	<item>
+  <title>Docker实战： 二、安装</title>
+  <link>http://betacz.com/2014/05/08/docker-pratices-install/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-05-08T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/05/08/docker-pratices-install/</guid>
+  <description><![CDATA[
+     <div class="img thumbnail pull-right">
+    <img src="http://betacz.com/images/articles/docker/docker-top-logo.png" />
+    
+</div>
+
+<p>Docker可以运行在大多数Linux发行版上。但因为它对Linux Kernel版本有一定的要求（3.8以上），所以有些发行版需要自行升级内核。</p>
+
+<p>一般建议在有条件的情况下，尽量选择Ubuntu Server版做为主机，因为Docker官方对Ubuntu的支持最好。</p>
+
+<p>Docker的安装也比较简单，基本上按照<a href="http://docs.docker.io/en/latest/">官方的文档</a>就可以很容易的安装完成。</p>
+
+<p>但在本文中，我们会使用比较特别的方法来安装Docker：<strong>用<a href="http://www.vagrantup.com/">Vagrant</a>来创建和管理Ubuntu虚拟机，并通过<a href="http://puppetlabs.com/">Puppet</a>来安装</strong>。</p>
+
+<div class='panel seriesNote'><p>本文是《<a href='http://betacz.com/series/Docker实战'>Docker实战</a>》系列中的第2篇（共3篇）。</p><ul><li> 前一篇 - <a href='http://betacz.com/2014/04/30/docker-pratices-intro/'>Docker实战： 一、简介</a></li><li> 后一篇 - <a href='http://betacz.com/2014/05/09/docker-pratices-terms/'>Docker实战： 三、基本概念与术语</a></li></ul></div>
+
+<h2>为什么？</h2>
+
+<p>为什么不直接使用官方的安装方法呢？为什么要引入Vagrant与Puppet呢？
+其中主要的原因有以下几点：</p>
+
+<ul>
+<li><p>很多人都是在Windows或Mac机器上做开发，而Docker必须运行在Linux环境下，这就给学习Docker带来了麻烦。而 Vagrant 是现在最流行的跨平台虚拟开发环境工具。通过使用Vagrant，Windows、 Mac OS X与Linux用户可以用完全相同的方式来安装并学习Docker。</p></li>
+<li><p>Vagrant能以自动化的方式同时管理一台或多台虚拟机。在今后遇到需要使用多台Docker服务器的场景时，可以节省大量的时间与精力。</p></li>
+<li><p>Puppet是一个被广泛使用的软件自动化配置与部署工具。在DevOps中起到了关键的作用。通过引入Puppet，我们可以在开发环境和生产环境共用一套配置脚本，只要开发环境配置好了，那么在生产环境安装Docker将是一件轻而易举的事情。</p></li>
+</ul>
+
+<p>有关Vagrant与Puppet的使用说明超出了本文范围。如果您不太熟悉这两款软件，也没关系，只要按照本文的步骤，安装Docker是没问题的。</p>
+
+<h2>安装Vagrant</h2>
+
+<p>安装方法请参见<a href="https://github.com/astaxie/Go-in-Action/blob/master/ebook/zh/01.2.md">Vgrant安装配置</a>, 注意只要安装好VirtualBox与Vagrant软件即可，先不要下载box。</p>
+
+<p>同时建议您安装 <a href="https://github.com/dotless-de/vagrant-vbguest">vagrant-vbguest</a> 这个Vagrant的插件。这个插件可以帮助您自动安装或更新VirtualBox Guest Additions。</p>
+
+<h2>创建虚拟机</h2>
+
+<p>建议使用<a href="http://cloud-images.ubuntu.com/vagrant/saucy/current/saucy-server-cloudimg-amd64-vagrant-disk1.box">Ubuntu官方的13.10版box</a>文件。您也可以在<a href="http://www.vagrantbox.es">http://www.vagrantbox.es</a>上找到由其他人提供的各个版本的Ubuntu虚拟机。</p>
+
+<p>虽然vagrant能自动下载镜像，但鉴于国内的网络现状，建议您还是先下载好相应的box文件。</p>
+
+<p>下载好box文件后，就可以开始创建本次要使用的虚拟机了。下面假设下载的box文件保存为：～/vagrant/boxs/ubuntu-13.10-base.box。</p>
+
+<div class="highlight"><pre><code class="sh"><span class="nv">$ </span>mkdir -p ~/vagrant/docker-1
+<span class="nv">$ </span><span class="nb">cd</span> ~/vagrant/docker-1
+<span class="nv">$ </span>vagrant init docker-1 ~/vagrant/boxs/ubuntu-13.10-base.box
+<span class="nv">$ </span>vagrant up
+</code></pre></div>
+
+<p>至此，一个名为docker-1的虚拟机已创建完成并正在运行中，我们可以通过</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant ssh
+</code></pre></div>
+<p>来登录此虚拟机。</p>
+
+<p>接下来需要配置此虚拟机使用puppet作为provision提供者，修改 Vagrantfile，添加以下配置：</p>
+<div class="highlight"><pre><code class="ruby language-ruby" data-lang="ruby"> <span class="c1"># 设置hostname以防止puppet运行出现错误</span>
+ <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">hostname</span> <span class="o">=</span> <span class="s2">&quot;docker-1.hlj.com&quot;</span>
+ <span class="c1"># 设置provision方式为 Puppet</span>
+ <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">provision</span> <span class="ss">:puppet</span> <span class="k">do</span> <span class="o">|</span><span class="n">puppet</span><span class="o">|</span>
+    <span class="n">puppet</span><span class="o">.</span><span class="n">manifests_path</span> <span class="o">=</span> <span class="s2">&quot;puppet/manifests&quot;</span>
+    <span class="n">puppet</span><span class="o">.</span><span class="n">module_path</span> <span class="o">=</span> <span class="s2">&quot;puppet/modules&quot;</span>
+    <span class="n">puppet</span><span class="o">.</span><span class="n">manifest_file</span>  <span class="o">=</span> <span class="s2">&quot;site.pp&quot;</span>
+ <span class="k">end</span>
+</code></pre></div>
+<h2>在目标机器上安装Puppet</h2>
+
+<p>如果使用的是Ubuntu官方的vagrant box，Puppet应该已经预装了。如果没有的话，安装也很方便：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>sudo apt-get update
+<span class="nv">$ </span>sudo apt-get install puppet-common
+</code></pre></div>
+<p>因为是以单机方式使用Puppet，所以只需要安装puppet-common这个包就行了，无需安装puppet和puppet-master，也不需要进行任何配置。</p>
+
+<h2>准备Puppet初始资源清单</h2>
+
+<p>1.首先创建一个容纳Puppet manifests和modules的目录结构：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span><span class="nb">cd</span> ~/vagrant/docker-1
+<span class="c"># 创建清单文件目录</span>
+<span class="nv">$ </span>mkdir -p puppet/manifests
+<span class="c"># 模块目录</span>
+<span class="nv">$ </span>mkdir -p puppet/modules
+<span class="c"># 创建主清单文件</span>
+<span class="nv">$ </span>touch puppet/manifests/site.pp
+</code></pre></div>
+<p>2.在site.pp中加入以下内容：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="c-Singleline"># 创建 puppet 组</span>
+<span class="nc">group</span> <span class="p">{</span> <span class="s2">&quot;puppet&quot;</span><span class="p">:</span>
+    <span class="nt">ensure</span> <span class="p">=&gt;</span> <span class="ss">present</span><span class="p">,</span>
+<span class="p">}</span><span class="c-Singleline"></span>
+
+<span class="c-Singleline"># 自动执行 apt-update，但限制每天最多一次</span>
+<span class="nc">exec</span> <span class="p">{</span> <span class="s2">&quot;apt-update&quot;</span> <span class="p">:</span>
+  <span class="nt">command</span> <span class="p">=&gt;</span> <span class="s2">&quot;/usr/bin/apt-get update&quot;</span><span class="p">,</span>
+  <span class="nt">schedule</span> <span class="p">=&gt;</span> <span class="ss">daily</span><span class="p">,</span>
+  <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Group</span><span class="p">[</span><span class="ss">puppet</span><span class="p">]</span>
+<span class="p">}</span><span class="c-Singleline"></span>
+
+<span class="c-Singleline"># 确保在其它包资源执行前执行apt-update</span>
+<span class="nc">Exec</span><span class="p">[</span><span class="s2">&quot;apt-update&quot;</span><span class="p">]</span> <span class="err">-&gt;</span> <span class="ss">Package</span> <span class="err">&lt;|</span> <span class="err">|&gt;</span>
+</code></pre></div>
+<p>3.执行 <code>vagrant reload --provision</code>, 重启虚拟机并应用Puppet。如果一切正常，你应该看到类似如下输出：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">...
+<span class="o">[</span>default<span class="o">]</span> Running provisioner: puppet...
+Running Puppet with site.pp...
+Notice: /Stage<span class="o">[</span>main<span class="o">]</span>//Exec<span class="o">[</span>apt-update<span class="o">]</span>/returns: executed successfully
+Notice: Finished catalog run in 16.60 seconds
+...
+</code></pre></div>
+<p>到目前为止，Puppet还没有做什么实际工作，只是更新了apt数据库。但这是一个良好的开端，随后我们将填充它来完成实际的Docker安装工作。</p>
+
+<h2>下载用于Puppet的Docker模块</h2>
+
+<p>虽然我们完全可以按照官方的安装指南来自己编写Docker的安装模块，但是既然已经有人帮我们写好了，那么本着不要重新发明轮子的精神，就直接下载使用吧。</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># 因为在我的host机器上没有安装Puppet，所以安装Puppet模块的命令要到虚拟机中去执行</span>
+<span class="nv">$ </span>vagrant ssh
+<span class="c"># 在虚拟机里切换到共享的/vagrant目录</span>
+vagrant@docker-1:~<span class="nv">$ </span><span class="nb">cd</span> /vagrant
+vagrant@docker-1:/vagrant<span class="nv">$ </span>puppet module install garethr-docker --target-dir<span class="o">=</span>puppet/modules
+vagrant@docker-1:/vagrant<span class="nv">$ </span><span class="nb">exit</span>
+<span class="nv">$ </span>ls puppet/modules
+</code></pre></div>
+<p>这时应该可以看到在modules下多了 <code>apt    docker epel   stdlib</code> 这4个模块。其中docker是主模块，其它3个是它所依赖的模块。</p>
+
+<h2>使用Docker模块</h2>
+
+<p>在site.pp中增加：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="kn">include</span> <span class="nc">docker</span>
+</code></pre></div>
+<p>然后执行</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant provision
+</code></pre></div>
+<p>最新版本的Docker就已经安装在我们机器上，并且正常运行了。
+下面让我们验证一下(此处版本号可能与本文不同，因为上述安装过程会自动安装最新版本的Docker)：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant ssh
+vagrant@docker-1:~<span class="nv">$ </span>sudo service docker status
+docker start/running, process 14278
+vagrant@docker-1:~<span class="nv">$ </span>sudo docker version
+Client version: 0.8.0
+Go version <span class="o">(</span>client<span class="o">)</span>: go1.2
+Git commit <span class="o">(</span>client<span class="o">)</span>: cc3a8c8
+Server version: 0.8.0
+Git commit <span class="o">(</span>server<span class="o">)</span>: cc3a8c8
+Go version <span class="o">(</span>server<span class="o">)</span>: go1.2
+Last stable version: 0.8.0
+</code></pre></div>
+<p>在Docker Puppet模块的<a href="https://github.com/garethr/garethr-docker">GitHub主页</a>上有其详细的使用说明。</p>
+
+<p>通常情况下，像上面那样简单的配置就可以了。不过为了今后能更方便使用Docker，需要稍微增加一点脚本复杂度。现在将site.pp 中的 <code>include docker</code> 改为以下内容：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="c-Singleline"># 同时绑定socket文件和tcp端口，以便今后引入Docker管理软件</span>
+<span class="nc">class</span> <span class="p">{</span> <span class="s1">&#39;docker&#39;</span><span class="p">:</span>
+  <span class="nt">tcp_bind</span>    <span class="p">=&gt;</span> <span class="s1">&#39;tcp://0.0.0.0:4243&#39;</span><span class="p">,</span>
+  <span class="nt">socket_bind</span> <span class="p">=&gt;</span> <span class="s1">&#39;unix:///var/run/docker.sock&#39;</span><span class="p">,</span>
+<span class="p">}</span><span class="c-Singleline"></span>
+
+<span class="c-Singleline"># 注意，因为某些众所周知的原因，国内用户不要添加以下内容，基础镜像的安装方法请参见下一篇文章。</span>
+<span class="c-Singleline"># 自动下载基础镜像</span>
+<span class="nc">docker::image</span> <span class="p">{</span> <span class="s1">&#39;ubuntu&#39;</span><span class="p">:</span>
+    <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Class</span><span class="p">[</span><span class="s1">&#39;docker&#39;</span><span class="p">],</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2>UFW设置</h2>
+
+<p>现在Ubuntu都预装了ufw这个很好用的防火墙，但是默认并没有开启。如果您计划启用它的话，则需要对它进行一些配置，以保证Docker能正常工作。</p>
+
+<p>首先下载UFW的Puppet模块：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span><span class="nb">cd </span>puppet/modules
+<span class="nv">$ </span>git clone https://github.com/hlj/puppet-module-ufw.git ufw
+</code></pre></div>
+<p>这个模块给我们操作UFW提供了基础。</p>
+
+<p>下面创建一个Puppet模块来配置我们的ufw选项。</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>mkdir -p puppet/modules/ufw-docker/manifests
+<span class="nv">$ </span>touch puppet/modules/ufw-docker/manifests/init.pp
+</code></pre></div>
+<p>更改 <code>init.pp</code> 的内容为：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="kd">class</span> <span class="nc">ufw</span><span class="err">-</span><span class="nc">docker</span> <span class="p">{</span>
+    <span class="nc">Exec</span> <span class="p">{</span>
+        <span class="nt">path</span> <span class="p">=&gt;</span> <span class="s2">&quot;/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="kn">include</span> <span class="nc">ufw</span>
+
+    <span class="nc">ufw::allow</span> <span class="p">{</span> <span class="s2">&quot;allow-ssh-from-all&quot;</span><span class="p">:</span>
+        <span class="nt">port</span> <span class="p">=&gt;</span> <span class="m">22</span><span class="p">,</span>
+        <span class="nt">ip</span> <span class="p">=&gt;</span> <span class="s2">&quot;any&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="nc">ufw::allow</span> <span class="p">{</span> <span class="s2">&quot;allow-docker-from-all&quot;</span><span class="p">:</span>
+        <span class="nt">port</span> <span class="p">=&gt;</span> <span class="m">4243</span><span class="p">,</span>
+        <span class="nt">ip</span> <span class="p">=&gt;</span> <span class="s2">&quot;any&quot;</span>
+    <span class="p">}</span>
+}
+</code></pre></div>
+<p>在 <code>site.pp</code> 中加入：</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="kn">include</span> <span class="nc">ufw-docker</span>
+</code></pre></div>
+<p>保存后执行</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant provision
+</code></pre></div>
+<p>这样，我们就启用了UFW，并且开放了ssh与docker端口。</p>
+
+<p><em>注：官方安装指南中关于 DEFAULT<em>FORWARD</em>POLICY 的配置，我在虚拟机上试验时，发现不需要修改。可能物理机会有区别，需要以后验证。</em></p>
+
+<h2>非ROOT用户授权</h2>
+
+<p>Docker的后台进程是以root用户权限执行的，所以我们在执行docker的命令时，需要用 <code>sudo docker ...</code>。但是Docker也提供了一种机制让我们不需要使用sudo就可以运行Docker命令。只需要把用户加入docker组即可。</p>
+
+<p>现在，让我们来创建一个模块配置相应的用户：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>mkdir -p puppet/modules/docker-user/manifests
+<span class="nv">$ </span>touch puppet/modules/docker-user/manifests/init.pp
+</code></pre></div>
+<p>In <code>init.pp</code> :</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="kd">class</span> <span class="nc">docker</span><span class="err">-</span><span class="nc">user</span><span class="p">(</span><span class="nv">$users</span><span class="p">)</span> <span class="p">{</span><span class="c-Singleline"></span>
+
+<span class="c-Singleline">    # Define: add_to_group</span>
+<span class="c-Singleline">    # add a user to docker group</span>
+    <span class="kd">define</span> <span class="nc">add_to_group</span> <span class="p">()</span> <span class="p">{</span>
+        <span class="nc">exec</span> <span class="p">{</span> <span class="s2">&quot;add_</span><span class="si">${name}</span><span class="s2">_to_docker_group&quot;</span><span class="p">:</span>
+            <span class="nt">command</span> <span class="p">=&gt;</span> <span class="s2">&quot;gpasswd -a </span><span class="si">${name}</span><span class="s2"> docker&quot;</span><span class="p">,</span>
+            <span class="nt">path</span> <span class="p">=&gt;</span> <span class="nv">$path</span><span class="p">,</span>
+            <span class="nt">unless</span> <span class="p">=&gt;</span> <span class="s2">&quot;grep -E &#39;docker</span><span class="se">\\</span><span class="s2">S*</span><span class="si">${name}</span><span class="s2">&#39; /etc/group&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+    }
+
+    <span class="nc">group</span> <span class="p">{</span> <span class="s2">&quot;docker&quot;</span><span class="p">:</span>
+        <span class="nt">ensure</span> <span class="p">=&gt;</span> <span class="ss">present</span><span class="p">,</span>
+        <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Class</span><span class="p">[</span><span class="s2">&quot;docker&quot;</span><span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="nc">add_to_group</span> <span class="p">{</span> <span class="nv">$users</span><span class="p">:</span>
+        <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Group</span><span class="p">[</span><span class="s2">&quot;docker&quot;</span><span class="p">]</span>
+    <span class="p">}</span>
+
+    <span class="nc">exec</span> <span class="p">{</span><span class="s2">&quot;restart docker&quot;</span><span class="p">:</span>
+        <span class="nt">command</span> <span class="p">=&gt;</span> <span class="s2">&quot;service docker restart&quot;</span><span class="p">,</span>
+        <span class="nt">path</span> <span class="p">=&gt;</span> <span class="nv">$path</span><span class="p">,</span>
+        <span class="nt">require</span> <span class="p">=&gt;</span> <span class="nc">Add_to_group</span><span class="p">[</span><span class="nv">$users</span><span class="p">],</span>
+    <span class="p">}</span>
+}
+</code></pre></div>
+<p>在 <code>site.pp</code> 中加入:</p>
+<div class="highlight"><pre><code class="puppet language-puppet" data-lang="puppet"><span class="nc">class</span> <span class="p">{</span> <span class="s2">&quot;docker-user&quot;</span><span class="p">:</span>
+    <span class="nt">users</span> <span class="p">=&gt;</span> <span class="p">[</span><span class="s2">&quot;vagrant&quot;</span><span class="p">],</span> <span class="c-Singleline"># 提供您想加入docker组的用户名</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>然后执行</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant provision
+</code></pre></div>
+<p>重新登录后，您应该可以不加sudo,直接执行Docker命令了。</p>
+
+  ]]></description>
+</item>
+
+
+	<item>
+  <title>Docker实战： 一、简介</title>
+  <link>http://betacz.com/2014/04/30/docker-pratices-intro/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-04-30T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/04/30/docker-pratices-intro/</guid>
+  <description><![CDATA[
+     <div class="img thumbnail pull-left">
+    <img src="http://betacz.com/images/articles/docker/docker-top-logo.png" />
+    
+</div>
+
+<p>在Docker的主页上是这么介绍它的：</p>
+
+<blockquote>
+<p>Docker is an open-source engine that automates the deployment of any application as a lightweight, portable, self-sufficient container that will run virtually anywhere.</p>
+
+<p>Docker containers can encapsulate any payload, and will run consistently on and between virtually any server. The same container that a developer builds and tests on a laptop will run at scale, in production*, on VMs, bare-metal servers, OpenStack clusters, public instances, or combinations of the above.</p>
+</blockquote>
+
+<p>从第一句话中我们可以知道，Docker是一个开源的容器引擎，用于在任何地方自动化部署任何应用程序。
+它所谓的容器内可以包含任何内容，运行在几乎任何基础设施上。并能保持测试与生产环境的一致性。</p>
+
+<p>Docker最本质的能力就是可以帮助我们将任何应用程序及它的所有依赖项，打包成独立的、易于分发及部署的容器。这些容器可以轻松运行在任何Docker所支持的基础设施上，使我们有能力构建所谓的PaaS.</p>
+
+<div class='panel seriesNote'><p>本文是《<a href='http://betacz.com/series/Docker实战'>Docker实战</a>》系列中的第1篇（共3篇）。</p><ul><li> 后一篇 - <a href='http://betacz.com/2014/05/08/docker-pratices-install/'>Docker实战： 二、安装</a></li></ul></div>
+
+<h2>基础知识</h2>
+
+<p>对于Docker的历史、实现原理、运行机制、限制条件等更多细节问题，请移步至</p>
+
+<p><a href="http://tiewei.github.io/cloud/Docker-Getting-Start/">Docker 介绍: 相关技术</a></p>
+
+<p>这个页面。此页面基本上涵盖Docker相关的所有基础知识。</p>
+
+<h2>我能用Docker吗？</h2>
+
+<p>Docker目前最基本的限制，就是它基于Linux 64bit，无法在windows/unix或32bit的linux环境下使用。因此，如果您没有Linux 64bit的主机，或者您的应用要求运行在windows/unix环境下，那现在就可以直接飘走了。</p>
+
+<p>除此之外，应该没有什么硬性限制能阻止您使用Docker。</p>
+
+<h2>它能解决什么问题？</h2>
+
+<p>Docker是 PaaS 提供商 dotCloud 开源的一个容器引擎。dotCloud公司使用它为成千上万的客户提供应用平台服务。Google、Redhat、百度等巨头也加入了对Docker的支持。可以说是风头正劲。</p>
+
+<p>但它与我们这些普通公司又有什么关系呢? 本人认为，使用Docker最大的意义在于推进DevOps.</p>
+
+<p>DevOps是一个热门的话题，同时也是一个复杂的话题。它包含了从开发到运维的一系列方法与工具的整合。Docker的出现，改变了我们传统的应用程序发布与管理方式。Docker所提供的一次打包，多处运行、开发与生产环境统一、应用间隔离、运行环境版本化、应用服务化等理念与手段，能很好的补充现有DevOps工具在应用开发、部署与管理方面的短板。同时，Docker作为应用程序更高层次的包装，也能与puppet,chef等现有DevOps工具无缝结合，必将进一步推动DevOps的发展。</p>
+
+  ]]></description>
+</item>
+
+
+</channel>
+</rss>

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+   
+    <title>betacz.com - Category: 脚本技术</title>
+   
+   <link>http://betacz.com</link>
+   <language>zh-cn</language>
+   <managingEditor>Beta CZ</managingEditor>
+   <atom:link href="rss" rel="self" type="application/rss+xml" />
+   
+	<item>
+  <title>一个管理Docker应用程序的脚本模板</title>
+  <link>http://betacz.com/2014/05/29/docker-app-script-template/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-05-29T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/05/29/docker-app-script-template/</guid>
+  <description><![CDATA[
+     <p>这是一个用于管理使用Docker打包的应用程序的脚本。通过包装docker命令，提供了特定应用程序的启动、停止、删除等管理功能。通过修改几个变量值，可以很容易的适配各类应用。</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c">#! /bin/bash -</span>
+
+<span class="c">#####################################################</span>
+<span class="c"># 此文件为Docker容器管理脚本模板,可自由使用与传播.</span>
+<span class="c"># 请根据具体的应用程序作相应修改</span>
+<span class="c"># 如有疑问，请联系: Beta CZ &lt;hlj8080@gmail.com&gt;</span>
+<span class="c">#####################################################</span>
+
+<span class="c"># 应用程序配置，按需修改</span>
+<span class="nv">imagename</span><span class="o">=</span>dockerfile/redis
+<span class="nv">container_name</span><span class="o">=</span>redis_db
+<span class="nv">start_cmd</span><span class="o">=</span><span class="s2">&quot;docker run -d -p 6379:6379 --name ${container_name} ${imagename}&quot;</span>
+
+<span class="c"># 获取容器状态命令, 除非Docker命令有变化，否则无需更改</span>
+<span class="nv">container</span><span class="o">=(</span><span class="sb">`</span>docker ps <span class="p">|</span> grep <span class="k">${</span><span class="nv">container_name</span><span class="k">}</span><span class="sb">`</span><span class="o">)</span>
+<span class="nv">container_stopped</span><span class="o">=(</span><span class="sb">`</span>docker ps -a <span class="p">|</span> grep <span class="k">${</span><span class="nv">container_name</span><span class="k">}</span><span class="sb">`</span><span class="o">)</span>
+
+<span class="c"># 以下内容只在必要时才能更改,并确保清楚其后果.</span>
+usage<span class="o">()</span>
+<span class="o">{</span>
+  <span class="nb">echo</span> <span class="s2">&quot; * Usage: $0 {start|stop|kill|remove|status}&quot;</span>
+  <span class="nb">exit </span>255
+<span class="o">}</span>
+
+<span class="k">if</span> <span class="o">[</span> <span class="nv">$# </span>-ne 1 <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">  </span>usage
+<span class="k">fi</span>
+
+<span class="k">if</span> <span class="o">[</span> <span class="nv">$1</span> !<span class="o">=</span> <span class="s2">&quot;start&quot;</span> <span class="o">]</span> <span class="o">&amp;&amp;</span> <span class="o">[</span> -z <span class="nv">$container</span> <span class="o">]</span> <span class="o">&amp;&amp;</span> <span class="o">[</span> -z <span class="nv">$container_stopped</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">  </span><span class="nb">echo</span> <span class="s2">&quot;ERROR：容器 ${container_name} 不存在.&quot;</span>
+  <span class="nb">exit </span>255
+<span class="k">fi </span>
+
+<span class="k">case</span> <span class="nv">$1</span> in
+start<span class="o">)</span>
+  <span class="k">if</span> <span class="o">[</span> <span class="nv">$container</span> <span class="o">]</span>
+  <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 应用正在运行中,请不要重复运行!&quot;</span>
+    <span class="nb">exit </span>255
+  <span class="k">fi</span>
+
+<span class="k">  if</span> <span class="o">[</span> <span class="nv">$container_stopped</span> <span class="o">]</span>
+  <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 已经停止，现在重新启动...&quot;</span>
+    docker start <span class="k">${</span><span class="nv">container_name</span><span class="k">}</span>
+  <span class="k">else</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 开始启动...&quot;</span>
+    <span class="nv">container_id</span><span class="o">=(</span><span class="sb">`</span><span class="k">${</span><span class="nv">start_cmd</span><span class="k">}</span><span class="sb">`</span><span class="o">)</span>
+  <span class="k">fi</span>
+<span class="k">  </span><span class="nb">echo</span> <span class="s2">&quot;启动完成,应用名称为:${container_name},ID为:${container_id}&quot;</span>
+  <span class="p">;;</span>
+stop<span class="o">)</span>
+  <span class="k">if</span> <span class="o">[</span> <span class="nv">$container</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span>docker stop <span class="k">${</span><span class="nv">container_name</span><span class="k">}</span>
+    <span class="nb">echo</span> <span class="s2">&quot;停止 ${container_name} 已完成.&quot;</span>  
+  <span class="k">elif</span> <span class="o">[</span> <span class="nv">$container_stopped</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 当前已经处于停止状态，操作无效.&quot;</span>
+  <span class="k">fi</span>
+  <span class="p">;;</span>
+<span class="nb">kill</span><span class="o">)</span>
+  <span class="k">if</span> <span class="o">[</span> <span class="nv">$container</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span>docker <span class="nb">kill</span> <span class="k">${</span><span class="nv">container_name</span><span class="k">}</span>
+    <span class="nb">echo</span> <span class="s2">&quot;杀死 ${container_name} 已完成.&quot;</span>  
+  <span class="k">elif</span> <span class="o">[</span> <span class="nv">$container_stopped</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 当前已经处于停止状态，操作无效.&quot;</span>
+  <span class="k">fi</span>
+  <span class="p">;;</span>
+remove<span class="o">)</span>
+  <span class="k">if</span> <span class="o">[</span> <span class="nv">$container</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 正在运行中，无法删除。&quot;</span>
+    <span class="nb">exit </span>255
+  <span class="k">elif</span> <span class="o">[</span> <span class="nv">$container_stopped</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span>docker rm <span class="k">${</span><span class="nv">container_name</span><span class="k">}</span>
+    <span class="nb">echo</span> <span class="s2">&quot;删除 ${container_name} 已完成.&quot;</span>
+  <span class="k">fi</span>
+  <span class="p">;;</span>
+status<span class="o">)</span>
+  <span class="k">if</span> <span class="o">[</span> <span class="nv">$container</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 正在运行中.&quot;</span>
+  <span class="k">elif</span> <span class="o">[</span> <span class="nv">$container_stopped</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 容器已创建，但处于停止状态。&quot;</span>
+  <span class="k">else</span>
+<span class="k">    </span><span class="nb">echo</span> <span class="s2">&quot;${container_name} 容器未找到！&quot;</span>
+  <span class="k">fi</span>
+  <span class="p">;;</span>
+*<span class="o">)</span>
+  usag
+  <span class="p">;;</span>
+<span class="k">esac</span>
+<span class="nb">exit </span>0
+</code></pre></div>
+  ]]></description>
+</item>
+
+
+</channel>
+</rss>

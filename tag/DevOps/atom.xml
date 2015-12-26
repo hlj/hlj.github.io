@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+   
+   	<title>betacz.com - Tag: DevOps</title>
+   
+   <link>http://betacz.com</link>
+   <language>zh-cn</language>
+   <managingEditor>Beta CZ</managingEditor>
+   <atom:link href="rss" rel="self" type="application/rss+xml" />
+   
+	<item>
+  <title>当流浪者(Vagrant)遇见码头工人(Docker): 实战</title>
+  <link>http://betacz.com/2014/05/21/vagrant-met-docker-2/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-05-21T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/05/21/vagrant-met-docker-2/</guid>
+  <description><![CDATA[
+     <div class="img thumbnail pull-right">
+    <img src="http://betacz.com/images/articles/docker/docker-top-logo.png" />
+    
+</div>
+
+<div class="img thumbnail pull-left">
+    <img src="http://betacz.com/images/articles/vagrant/logo_vagrant.png" />
+    
+</div>
+
+<p>要使用Vagrant与Docker共同创建一个开发环境，并不是一件容易的事情。特别是在国内这种网络环境中，更是平添了一层难度。官方的演示与文档中，也基本是将Docker provider作为测试或Stage环境来使用，对于创建开发环境时会遇到的问题几乎没有涉及。在本文中，笔者将详细讲述使用Docker provider创建一个完整的Rails开发环境的全过程。对于其它框架或语言的开发者，此过程也基本相似。</p>
+
+<div class='panel seriesNote'><p>本文是《<a href='http://betacz.com/series/当流浪者(Vagrant)遇见码头工人(Docker)'>当流浪者(Vagrant)遇见码头工人(Docker)</a>》系列中的第2篇（共2篇）。</p><ul><li> 前一篇 - <a href='http://betacz.com/2014/05/20/vagrant-met-docker/'>当流浪者(Vagrant)遇见码头工人(Docker): 初见</a></li></ul></div>
+
+<h2>一、前提</h2>
+
+<hr>
+
+<p>在阅读本文之前，您需要有一定的Vagrant和Docker的使用经验。在涉及到这两个软件本身的知识时，文中不会作详细解释。</p>
+
+<p>在您的物理机器上，必须已经安装了下列的软件，并能正常使用：</p>
+
+<ul>
+<li>Vagrant &gt;= 1.6.2</li>
+<li>VirtualBox &gt;= 4.10.0</li>
+<li>vagrant-vbguest插件 (建议，可选)</li>
+<li>Docker &gt;= 0.9.0 (仅当Docker原生支持时需要, Mac OS X与Windows用户不可安装)</li>
+</ul>
+
+<h2>二、创建 HOST VM</h2>
+
+<hr>
+
+<p><em>注：理论上Linux用户可以跳过此节，但由于团队中很可能有成员使用其它的操作系统，所以还是看一下吧。</em></p>
+
+<p>对于Docker不能原生支持的平台，如Mac OS X或Windows，Vagrant会自动在后台启动一个host VM来运行Docker。这个host VM，说到底就是一个VirtualBox的虚拟机，Dokcer将安装在这个虚拟机上，所有Vagrant的命令，也会自动转发到这个虚拟机的Docker中。对用户而言，这个过程是透明的，Vagrant将这个VM隐藏在了幕后，使所有平台的用户能获得一致操作界面。</p>
+
+<p>Vagrant自带了一个基于boot2docker的host VM。它具有体积小，速度快，无需配置等优点。但不幸的是，有两个致命的缺点使它在开发环境中完全无法使用：</p>
+
+<ol>
+<li>在这个host VM中启动Docker容器时，会自动连接到<a href="https://index.docker.io">index.docker.io</a>来获取相应的镜像。但由于一堵墙的存在，这是不可能成功的。虽然最终可以通过进入这个虚拟机并配置代理来fq，但是这个操作不能自动化，且技术门槛较高，对于一个开箱即用的统一开发环境来说，这是无法接受的。</li>
+<li>这个host VM与物理主机使用的文件夹同步方式是rsync。这意味着这个同步是单向，只能是在物理机上修改的内容同步至虚拟机中。对于测试或模拟生产环境来说，这种同步方式完全可行。但对于开发环境，必须要有双向同步的能力。</li>
+</ol>
+
+<p>为了解决这两个问题，需要自行创建一个host VM给Docker provider使用。创建host VM的过程其实很简单。就是用Vagrant创建一个正常的基于VirtualBox的虚拟机，然后在里面安装好Docker软件。为了对付国内的网络情况，可以在这个虚拟机里fq后，下载好所需的常用Docker镜像。然后重新打包成一个Box即可。其过程不再赘述。</p>
+
+<p>为了节省大家的时间和精力，笔者已经创建好一个host VM: <a href="http://yun.baidu.com/share/link?shareid=566951005&amp;uk=289275890">docker-host-01.box</a>，可以直接下载使用。</p>
+
+<p>这个VM的近1G大小，具有如下特性：</p>
+
+<ul>
+<li>操作系统为 ubuntu 14.04</li>
+<li>时区为 Asia/Shanghai</li>
+<li>已安装 Docker 0.11.1</li>
+<li>已包含下列Docker Image:
+
+<ul>
+<li>ubuntu:12.04</li>
+<li>ubuntu:14.04</li>
+<li>phusion/baseimage:0.9.10</li>
+<li>busybox</li>
+<li>svendowideit/ambassador</li>
+<li>dockerfile/redis</li>
+</ul></li>
+</ul>
+
+<h2>三、创建开发环境</h2>
+
+<hr>
+
+<p>在准备好上述的host VM之后，就可以正式开始创建Rails开发环境了。首先要创建一系列的目录和文件来配置Vagrant，告诉它应该如何启动Docker容器。</p>
+
+<p>该示例项目的完整内容可以从我的<a href="https://github.com/hlj/vagrant-docker">GitHub项目</a>中获取。</p>
+
+<h3>1. 目录结构</h3>
+
+<p>首先看一下基本的目录结构：</p>
+<div class="highlight"><pre><code class="text language-text" data-lang="text">vagrant-docker/
+|-- Vagrantfile            # 主要的Vagrant配置文件，定义了Docker容器
+|-- docker_host/           # 包含host VM的配置
+|   |-- Vagrantfile        # host VM配置文件
+|-- dockerfiles/           # 包含所有Dockerfile的定义
+|   |-- rails/             # 包含rails容器配置
+|       |-- Dockefile      # rails容器的构建文件
+|       |-- ...
+|-- demo_app/              # rails项目的主目录
+|   |-- ...
+|-- ...
+</code></pre></div>
+<p>目录结构比较简单。其中<code>demo_app</code>中包含了一个正常的rails项目，与其它普通的rails项目没有区别。<code>docker_host</code>则定义了host VM的配置。<code>dockerfiles</code>则应该包含所有该项目中用到的Docker容器的构建文件。</p>
+
+<h3>2. docker_host/Vagrantfile</h3>
+
+<p>这个文件中定义了host VM。它是基于上面所说的docker-host-01.box创建的，文件内容为：</p>
+<div class="highlight"><pre><code class="ruby language-ruby" data-lang="ruby"><span class="no">VAGRANTFILE_API_VERSION</span> <span class="o">=</span> <span class="s2">&quot;2&quot;</span>
+
+<span class="no">Vagrant</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="no">VAGRANTFILE_API_VERSION</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">box</span> <span class="o">=</span> <span class="s2">&quot;docker-host-01&quot;</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">hostname</span> <span class="o">=</span> <span class="s2">&quot;dh01&quot;</span>
+
+  <span class="c1"># Forward port for rails app</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">network</span> <span class="s2">&quot;forwarded_port&quot;</span><span class="p">,</span> <span class="ss">guest</span><span class="p">:</span> <span class="mi">3000</span><span class="p">,</span> <span class="ss">host</span><span class="p">:</span> <span class="mi">3000</span>
+  <span class="c1"># Forward port for container&#39;s ssh</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">network</span> <span class="s2">&quot;forwarded_port&quot;</span><span class="p">,</span> <span class="ss">guest</span><span class="p">:</span> <span class="mi">2244</span><span class="p">,</span> <span class="ss">host</span><span class="p">:</span> <span class="mi">2244</span>
+
+  <span class="c1"># Fixed the mapping of the app&#39;s folder</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">synced_folder</span> <span class="s2">&quot;../&quot;</span><span class="p">,</span> <span class="s2">&quot;/var/lib/docker_root&quot;</span>
+
+<span class="k">end</span>
+</code></pre></div>
+<p>最后三行配置的作用需要解释一下。</p>
+
+<p>前面说过，在使用host VM时，Docker容器实际上是运行在这个虚拟机里面的。相当于是盗梦空间里的第二层梦境。在容器运行时使用<code>-p</code> 选项映射至主机的网络端口，实际上只是暴露给了host VM，所以需要在host VM上再进行一次转发，这样物理机上的程序才能直接访问到Docker容器的端口。</p>
+
+<p>在这里，<code>3000</code>端口是Rails开发时的默认web端口。<code>2244</code>则是容器内的<code>22</code>端口的映射。</p>
+
+<p>最后一行配置的意义则是为了应对目前Vagrant 1.6.2在处理文件夹同步上的问题。在使用host VM的情况下，项目的当前目录首先会被Vagrant自动映射为host VM上的一个临时目录。然后再通过Docker容器的Volumes参数将这个目录映射到容器内的<code>/vagrant</code>目录。但是这种实现带来了一个问题: 如果停止这个host VM再重新启动（halt or reload），那么这个临时目录的名称会改变。但由于容器并不会自动重新创建，因此容器内的<code>/vagrant</code>就对应到了一个不存在的目录。只有当reload或destroy后重建Docker容器时，才会重新映射到正确的位置。为了解决这个问题，这里使用了一个变通方法 ，就是将项目的根目录指定同步到一个固定的位置（/var/lib/docker_root），这样映射关系就不会受到host VM重起的影响了。</p>
+
+<p>最后要说明的是，如果物理主机上能够直接运行Docker，那么Vagrant默认并不会使用host VM，因此这里配置不会影响原生Docker容器的运行。</p>
+
+<h3>3. /dockerfiles/rails/Dockerfile</h3>
+
+<p>这个文件是Rails容器自动化构建脚本。Vagrant的Dcoker provider支持直接从镜像启动容器和从Dockerfile构建容器两种方式。一般对于需要定制化的容器，肯定是需要使用Dockerfile的。</p>
+
+<p>这个文件的内容比较长，下面将从头至尾分段介绍。</p>
+
+<h4>3.1 声明基础镜像</h4>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">FROM phusion/baseimage:0.9.10
+<span class="c"># Set correct environment variables.</span>
+ENV HOME /root
+<span class="c"># Regenerate SSH host keys</span>
+RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
+</code></pre></div>
+<p>第一行<code>FROM phusion/baseimage:0.9.10</code>声明了此容器是基于 phusion/baseimage 这个镜像的 0.9.10 版本创建的。之所以要使用这个镜像，而不是常用的 ubuntu，主要是为了使用它内建的ssh服务及init脚本支持能力。如果要自行来配置这样一个镜像，需要花费大量的时间与精力的。</p>
+
+<p>紧接着的两行脚本是 phusion/baseimage 推荐使用的，直接引用即可。详细信息可参考<a href="https://github.com/phusion/baseimage-docker">官方网站</a>。</p>
+
+<h4>3.2 本地配置</h4>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># Change the timezone</span>
+RUN cp -f /usr/share/zoneinfo/PRC /etc/localtime
+<span class="c"># Set the software sources to the fastest server.</span>
+ADD sources.list /etc/apt/sources.list
+RUN apt-get update
+</code></pre></div>
+<p>作为国内用户，当然要把时区和软件源都设置为国内了。这里需要在<code>dockerfiles/rails</code>下创建一个<code>sources.list</code>文件，里面的内容就是您喜爱的任意软件源配置。</p>
+
+<h4>3.3 安装常用软件与ruby 2.1</h4>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># Install basic tools and libraries</span>
+RUN apt-get install -q -y ca-certificates git vim
+RUN apt-get install -q -y libsqlite3-dev
+
+<span class="c"># Install ruby dependencies</span>
+RUN apt-get update <span class="o">&amp;&amp;</span> apt-get install -y <span class="se">\</span>
+      build-essential <span class="se">\</span>
+      zlib1g-dev <span class="se">\</span>
+      libssl-dev <span class="se">\</span>
+      libreadline6-dev <span class="se">\</span>
+      libyaml-dev
+
+<span class="c"># Install ruby from source and cleanup afterward (from murielsalvan/ruby)</span>
+ADD http://ruby.taobao.org/mirrors/ruby/ruby-2.1.2.tar.gz /tmp/
+RUN <span class="nb">cd</span> /tmp <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      tar -xzf ruby-2.1.2.tar.gz <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      <span class="nb">cd </span>ruby-2.1.2 <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      ./configure <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      make <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      make install <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      <span class="nb">cd</span> .. <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      rm -rf ruby-2.1.2 <span class="o">&amp;&amp;</span> <span class="se">\</span>
+      rm -f ruby-2.1.2.tar.gz
+
+<span class="c"># Set the gem sources to ruby.taobao.org</span>
+RUN gem sources --remove https://rubygems.org/
+RUN gem sources -a https://ruby.taobao.org/
+
+<span class="c"># Install bundler</span>
+RUN gem install bundler --no-ri --no-rdoc
+</code></pre></div>
+<p>这一段虽然很长，但功能很简单。就是安装一些常用的开发工具、Ruby 2.1.2及bundler。当然，这里也做了一些本地化处理，将gem source改为taobao的镜像源。</p>
+
+<h4>3.4 配置ssh key</h4>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># Add ssh authorized key</span>
+ADD docker_vm.pub /tmp/my_key
+RUN cat /tmp/my_key &gt;&gt; /root/.ssh/authorized_keys <span class="o">&amp;&amp;</span> rm -f /tmp/my_key
+</code></pre></div>
+<p>phusion/baseimage已经内置了ssh服务。但并有配置ssh keys。为了能用ssh登录进容器，需要用ssh-keygen创建一对自己的公私密钥。并且将公钥配置进容器中。</p>
+
+<h4>3.5 处理环境变量</h4>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># dump environment variables for container&#39;s link, required in development.</span>
+ADD dump_link_env.sh /etc/my_init.d/dump_link_env.sh
+RUN chmod a+x /etc/my_init.d/*
+<span class="c"># Allow sshd load these environment variables</span>
+RUN <span class="nb">echo</span> <span class="s1">&#39;PermitUserEnvironment yes&#39;</span> &gt;&gt; /etc/ssh/sshd_config
+</code></pre></div>
+<p>这一段是比较关键的部分。在Docker容器使用link功能连接时，会在发起连接的容器内设置一系列的环境变量，以便让程序通过这些环境变更与另一个容器交互。在生产环境中，一般一个容器对应一个应用，而这个应用就是这个容器的唯一进程，所以不需要做特别处理。但是在开发环境中，我们会通过ssh登录到容器中，而ssh会话中并不包括这些环境变量。因此，需要在容器启动时将这些环境变更保存下来，并让ssh去读取这个文件。</p>
+
+<p>这里所用的脚本<code>dump_link_env.sh</code>内容如下：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c">#! /bin/sh</span>
+env <span class="p">|</span> grep _ &gt;&gt; /etc/environment
+env <span class="p">|</span> grep _ &gt; /root/.ssh/environment
+</code></pre></div>
+<h4>3.6 清理并设置启动命令</h4>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="c"># Clean up APT when done.</span>
+RUN apt-get clean <span class="o">&amp;&amp;</span> rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+<span class="c"># Use baseimage-docker&#39;s init system.</span>
+CMD <span class="o">[</span><span class="s2">&quot;/sbin/my_init&quot;</span><span class="o">]</span>
+</code></pre></div>
+<p>最后两行比较简单，就不用多做解释了。</p>
+
+<h3>4. /Vagrantfile</h3>
+
+<p>现在host VM与Dockerfile都准备好了。只剩下最终Docker provider的配置了。</p>
+
+<p>在项目根目录下的<code>Vagrantfile</code>里，定义了两个Docker容器。一个是Rails开发环境，另一个则是为了演示link功能而创建的redis容器。</p>
+
+<p>文件内容如下:</p>
+<div class="highlight"><pre><code class="ruby language-ruby" data-lang="ruby"><span class="c1"># Force the provider so we don&#39;t have to type in --provider=docker all the time</span>
+<span class="no">ENV</span><span class="o">[</span><span class="s1">&#39;VAGRANT_DEFAULT_PROVIDER&#39;</span><span class="o">]</span> <span class="o">=</span> <span class="s1">&#39;docker&#39;</span>
+
+<span class="no">VAGRANTFILE_API_VERSION</span> <span class="o">=</span> <span class="s2">&quot;2&quot;</span>
+
+<span class="no">Vagrant</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="no">VAGRANTFILE_API_VERSION</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">define</span> <span class="s2">&quot;db&quot;</span> <span class="k">do</span> <span class="o">|</span><span class="n">db1</span><span class="o">|</span>
+   <span class="n">db1</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">provider</span> <span class="s2">&quot;docker&quot;</span> <span class="k">do</span> <span class="o">|</span><span class="n">d</span><span class="o">|</span>
+     <span class="n">d</span><span class="o">.</span><span class="n">vagrant_vagrantfile</span> <span class="o">=</span> <span class="s2">&quot;docker_host/Vagrantfile&quot;</span>
+     <span class="n">d</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="s2">&quot;dockerfile/redis&quot;</span>
+     <span class="n">d</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;demo_db&quot;</span>
+   <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">define</span> <span class="s2">&quot;rails&quot;</span> <span class="k">do</span> <span class="o">|</span><span class="n">rails</span><span class="o">|</span>
+    <span class="n">rails</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">provider</span> <span class="s2">&quot;docker&quot;</span> <span class="k">do</span> <span class="o">|</span><span class="n">d</span><span class="o">|</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">vagrant_vagrantfile</span> <span class="o">=</span> <span class="s2">&quot;docker_host/Vagrantfile&quot;</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">build_dir</span> <span class="o">=</span> <span class="s2">&quot;dockerfiles/rails&quot;</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">ports</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;3000:3000&quot;</span><span class="p">,</span> <span class="s2">&quot;2244:22&quot;</span><span class="o">]</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">create_args</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;-h=rails_vm&quot;</span><span class="o">]</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">link</span> <span class="s2">&quot;demo_db:redis&quot;</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">has_ssh</span> <span class="o">=</span> <span class="kp">true</span>
+      <span class="c1"># Mapping to the host, only need in Host VM.</span>
+      <span class="n">d</span><span class="o">.</span><span class="n">volumes</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;/var/lib/docker_root:/vagrant&quot;</span><span class="o">]</span>
+    <span class="k">end</span>
+
+    <span class="c1"># Use own key file</span>
+    <span class="n">rails</span><span class="o">.</span><span class="n">ssh</span><span class="o">.</span><span class="n">private_key_path</span> <span class="o">=</span> <span class="s2">&quot;dockerfiles/docker_vm.key&quot;</span>
+    <span class="n">rails</span><span class="o">.</span><span class="n">ssh</span><span class="o">.</span><span class="n">username</span> <span class="o">=</span> <span class="s2">&quot;root&quot;</span>
+    <span class="n">rails</span><span class="o">.</span><span class="n">ssh</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="s2">&quot;22&quot;</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div>
+<p>在这个文件里，需要特别说明的主要是&quot;rails&quot;容器的配置。</p>
+
+<ul>
+<li><p><code>d.vagrant_vagrantfile = &quot;docker_host/Vagrantfile&quot;</code> 表示容器如果需要使用host VM,应该使用这个配置文件来启动。</p></li>
+<li><p><code>d.build_dir = &quot;dockerfiles/rails&quot;</code>， 指示dockerfile文件所在位置。 </p></li>
+<li><p><code>d.ports = [&quot;3000:3000&quot;, &quot;2244:22&quot;]</code>，容器对外开放的端口映射。这里的端口号要与host VM的配置一致。</p></li>
+<li><p><code>d.link &quot;demo_db:redis&quot;</code>， 表示将demo_db这个容器以redis这个名称连接到本容器内。</p></li>
+<li><p>`d.volumes = [&quot;/var/lib/docker_root:/vagrant&quot;]， 将host VM中自定义的同步目录映射到/vagrant。实际在不使用host VM时，是不需要这个配置的。但为了避免不同平台使用不同的配置文件，还是统一加上了。</p></li>
+<li><p><code>rails.ssh.private_key_path = &quot;dockerfiles/docker_vm.key&quot;</code>，这里配置了当使用&#39;vagrant ssh rails&#39;登录时引用的key文件。这个文件必须要和Dockerfile里面的文件是对应的。</p></li>
+<li><p><code>rails.ssh.port = &quot;22&quot;</code>，指定<code>vagrant ssh</code>时使用的端口。这个配置原本是不需要的，属于<a href="https://github.com/mitchellh/vagrant/issues/3799">当前版本的Bug</a>。在最新的源码中已经修正了。</p></li>
+</ul>
+
+<h2>四、使用</h2>
+
+<hr>
+
+<p>现在整个开发环境已经就绪了。让我们开动吧。</p>
+
+<h3>1. 启动</h3>
+
+<p>将终端窗口的当前目录切换为项目的根目录，并执行下列命令：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant up
+</code></pre></div>
+<p>Vagrant开始启动Docker容器了，在我的Linux上，输出如下所示:</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="o">==</span>&gt; rails: Building the container from a Dockerfile...
+<span class="o">==</span>&gt; db: Creating the container...
+    db:   Name: demo_db
+    db:  Image: dockerfile/redis
+    db: Volume: /home/beta/vagrant/vagrant-docker:/vagrant
+    db:   Port: 2222:22
+    db:  
+    db: Container created: <span class="nv">336b9c3186273eb1</span>
+<span class="o">==</span>&gt; db: Starting container...
+<span class="o">==</span>&gt; db: Provisioners will not be run since container doesn<span class="err">&#39;</span>t support SSH.
+    rails: Image: <span class="nv">3ef1f2cb3b9b</span>
+<span class="o">==</span>&gt; rails: Fixed port collision <span class="k">for </span><span class="nv">22</span> <span class="o">=</span>&gt; 2222. Now on port 2200.
+<span class="o">==</span>&gt; rails: Creating the container...
+    rails:   Name: vagrant-docker_rails_1400658212
+    rails:  Image: 3ef1f2cb3b9b
+    rails: Volume: /var/lib/docker_root:/vagrant
+    rails: Volume: /home/beta/vagrant/vagrant-docker:/vagrant
+    rails:   Port: 2200:22
+    rails:   Port: 3000:3000
+    rails:   Port: 2244:22
+    rails:   Link: demo_db:redis
+    rails:  
+    rails: Container created: <span class="nv">a1968cc7caf036c7</span>
+<span class="o">==</span>&gt; rails: Starting container...
+<span class="o">==</span>&gt; rails: Waiting <span class="k">for </span>machine to boot. This may take a few minutes...
+    rails: SSH address: 172.17.0.3:22
+    rails: SSH username: root
+    rails: SSH auth method: private key
+    rails: Warning: Connection refused. Retrying...
+<span class="o">==</span>&gt; rails: Machine booted and ready!
+</code></pre></div>
+<p>首次启动时，因为了构建Dockerfile,会需要较长的时间，请耐心等待。</p>
+
+<p>注意这里有一个奇怪的问题。明明redis容器没有开放22端口，也没有配置为使用ssh。但Vagrant还是为它转发了22端口。其实这也是一个<a href="https://github.com/mitchellh/vagrant/issues/3857">程序Bug</a>，现在已经被修正了。</p>
+
+<p>另外需要注意的是，如果您使用的是Mac OS X或Windows,那么首次启动时会先创建host VM,需要花费更多时间。输出内容也会更多。</p>
+
+<h3>2. 创建Rails项目</h3>
+
+<p>因为我们在Rails容器构建过程中并没有安装rails gem. 所以，在首次启动完成后，这是最先要做的：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh"><span class="nv">$ </span>vagrant ssh rails
+root@rails_vm:~# gem install rails --no-ri
+root@rails_vm:~# <span class="nb">cd</span> /vagrant/
+root@rails_vm:/vagrant# rails new demo_app
+</code></pre></div>
+<p>在创建demo_app后，要把gem安装到vendor/bundle中。这么做的原因是因为Docker provider与其它provider不同，当使用&#39;Vagrant reload rails&#39;来重载rails容器时，Vagarnt会按照Dockerfile重新构建一个新的容器。而我们并不希望每次重新构建容器时都需要重新安装所有gem. 因此，需要执行下面的命令:</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">root@rails_vm:/vagrant/demo_app# bundle install --path<span class="o">=</span>vendor/bundle/ --binstubs<span class="o">=</span>.bin
+</code></pre></div>
+<p>同时记得把vendor/bundle和.bin加入.gitignore。</p>
+
+<h3>3. 测试应用</h3>
+
+<p>现在可以运行demo_app了:</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">root@rails_vm:/vagrant/demo_app# .bin/rails <span class="nv">s</span>
+<span class="o">=</span>&gt; Booting <span class="nv">WEBrick</span>
+<span class="o">=</span>&gt; Rails 4.1.1 application starting in development on http://0.0.0.0:3000
+<span class="o">=</span>&gt; Run <span class="sb">`</span>rails server -h<span class="sb">`</span> <span class="k">for </span>more startup <span class="nv">options</span>
+<span class="o">=</span>&gt; Notice: server is listening on all interfaces <span class="o">(</span>0.0.0.0<span class="o">)</span>. Consider using 127.0.0.1 <span class="o">(</span>--binding option<span class="o">)</span>
+<span class="o">=</span>&gt; Ctrl-C to shutdown server
+<span class="o">[</span>2014-05-21 16:03:12<span class="o">]</span> INFO  WEBrick 1.3.1
+<span class="o">[</span>2014-05-21 16:03:12<span class="o">]</span> INFO  ruby 2.1.2 <span class="o">(</span>2014-05-08<span class="o">)</span> <span class="o">[</span>x86_64-linux<span class="o">]</span>
+<span class="o">[</span>2014-05-21 16:03:12<span class="o">]</span> INFO  WEBrick::HTTPServer#start: <span class="nv">pid</span><span class="o">=</span>54 <span class="nv">port</span><span class="o">=</span>3000
+</code></pre></div>
+<p>打开您主机上的浏览器，转到<a href="http://localhost:3000">http://localhost:3000</a>, 熟悉的画面又出现在眼前...</p>
+
+<h3>4. 测试link</h3>
+
+<p>Rails已经顺利跑起来了，现在该看看link的redis容器是不是能正常使用了。</p>
+
+<p>首先检查一下环境变量:</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">root@rails_vm:~# env <span class="p">|</span> grep REDIS
+<span class="nv">REDIS_PORT_6379_TCP_PROTO</span><span class="o">=</span>tcp
+<span class="nv">REDIS_NAME</span><span class="o">=</span>/vagrant-docker_rails_1400658212/redis
+<span class="nv">REDIS_PORT_6379_TCP_ADDR</span><span class="o">=</span>172.17.0.2
+<span class="nv">REDIS_PORT_22_TCP_ADDR</span><span class="o">=</span>172.17.0.2
+<span class="nv">REDIS_PORT_6379_TCP_PORT</span><span class="o">=</span>6379
+<span class="nv">REDIS_PORT_6379_TCP</span><span class="o">=</span>tcp://172.17.0.2:6379
+<span class="nv">REDIS_PORT</span><span class="o">=</span>tcp://172.17.0.2:22
+<span class="nv">REDIS_PORT_22_TCP_PORT</span><span class="o">=</span>22
+<span class="nv">REDIS_PORT_22_TCP</span><span class="o">=</span>tcp://172.17.0.2:22
+<span class="nv">REDIS_PORT_22_TCP_PROTO</span><span class="o">=</span>tcp
+</code></pre></div>
+<p>可以看到变量已经设置好了。下一步是安装redis client：</p>
+<div class="highlight"><pre><code class="sh language-sh" data-lang="sh">root@rails_vm:~# gem install redis --no-ri --no-rdoc
+Fetching: redis-3.0.7.gem <span class="o">(</span>100%<span class="o">)</span>
+Successfully installed redis-3.0.7
+1 gem installed
+</code></pre></div>
+<p>开始测试:</p>
+<div class="highlight"><pre><code class="ruby language-ruby" data-lang="ruby"><span class="n">root</span><span class="vi">@rails_vm</span><span class="ss">:~</span><span class="c1"># irb</span>
+<span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">001</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="nb">require</span> <span class="s1">&#39;redis&#39;</span>
+<span class="o">=&gt;</span> <span class="kp">true</span>
+<span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">002</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">redis</span> <span class="o">=</span> <span class="no">Redis</span><span class="o">.</span><span class="n">new</span> <span class="ss">host</span><span class="p">:</span> <span class="no">ENV</span><span class="o">[</span><span class="s2">&quot;REDIS_PORT_6379_TCP_ADDR&quot;</span><span class="o">]</span>
+<span class="o">=&gt;</span> <span class="c1">#&lt;Redis client v3.0.7 for redis://172.17.0.2:6379/0&gt;</span>
+<span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">003</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">redis</span><span class="o">.</span><span class="n">set</span> <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;Beta CZ&quot;</span>
+<span class="o">=&gt;</span> <span class="s2">&quot;OK&quot;</span>
+<span class="n">irb</span><span class="p">(</span><span class="n">main</span><span class="p">):</span><span class="mo">004</span><span class="p">:</span><span class="mi">0</span><span class="o">&gt;</span> <span class="n">redis</span><span class="o">.</span><span class="n">get</span> <span class="s2">&quot;name&quot;</span>
+<span class="o">=&gt;</span> <span class="s2">&quot;Beta CZ&quot;</span>
+</code></pre></div>
+<p>一切正常。</p>
+
+<h3>5. 配置 Rubymine Remote Ruby SDK</h3>
+
+<p>前面所有操作都是远程登录到容器中做的。但Vagrant的意义不应该是在本机写代码，在虚拟机中运行和测试吗？
+的确如此，下面就将介绍如何使用Rubymine来实现这一点。</p>
+
+<p>Rubymine可以说是目前最好的用于开发Ruby应用的IDE。在很早的时候就提供了对远程调试的支持。现在更是直接支持自动Vagrant虚拟机。但是因为Docker容器的特殊性，在使用host VM时，Rubymine并不能自动探测出正确的配置，需要自行设置。</p>
+
+<p>Remote Ruby SDK的配置并不复杂。在 project setting中只需要配置两个地方。下面就以Rubymine 6.3为例，给出配置内容。</p>
+
+<p>首先需要配置一个<code>deployment</code>环境，按下图配置即可：</p>
+
+<div class="imgblock">
+<div class="noalignouter">
+    <div class="noaligninner">
+
+<div class="img thumbnail alignnone">
+    <img src="http://betacz.com/images/articles/vagrant/rubymine-cfg1.png" />
+    
+</div>
+
+<p></div>
+</div>
+<div class="clearfix"></div>
+</div></p>
+
+<p>然后按下图配置主机和虚拟机的目录映射：</p>
+
+<div class="imgblock">
+<div class="noalignouter">
+    <div class="noaligninner">
+
+<div class="img thumbnail alignnone">
+    <img src="http://betacz.com/images/articles/vagrant/rubymine-cfg2.png" />
+    
+</div>
+
+<p></div>
+</div>
+<div class="clearfix"></div>
+</div></p>
+
+<p>最后在<code>Ruby SDK and Gems</code>中按下图配置一个Remote SDK(使用 &quot;Fill from deployment server settting&quot;):</p>
+
+<div class="imgblock">
+<div class="noalignouter">
+    <div class="noaligninner">
+
+<div class="img thumbnail alignnone">
+    <img src="http://betacz.com/images/articles/vagrant/rubymine-cfg3.png" />
+    
+</div>
+
+<p></div>
+</div>
+<div class="clearfix"></div>
+</div></p>
+
+<p>Everyting is OK!</p>
+
+<h2>小结</h2>
+
+<hr>
+
+<p>在本篇中，我们用Vagrant和Docker provider,创建了一个完整的Rails开发环境。对于Linux平台的用户来说，Docker provider带来性能与效率的提升是非常明显的。而对于其它平台的用户，虽然在性能上并不能获得显著的提高，但至少可以从开发环境与生产环境一致性中获得益处。</p>
+
+<h3>参考</h3>
+
+<ul>
+<li><a href="https://www.vagrantup.com/blog/feature-preview-vagrant-1-6-docker-dev-environments.html">Feature Preview: Docker-Based Development Environments</a></li>
+<li><a href="http://www.vagrantup.com/">Vagrant官方网站</a></li>
+<li><a href="https://www.docker.io/">Docker官方网站</a></li>
+</ul>
+
+  ]]></description>
+</item>
+
+
+	<item>
+  <title>当流浪者(Vagrant)遇见码头工人(Docker): 初见</title>
+  <link>http://betacz.com/2014/05/20/vagrant-met-docker/</link>
+  <author>Beta CZ</author>
+  <pubDate>2014-05-20T00:00:00+08:00</pubDate>
+  <guid>http://betacz.com/2014/05/20/vagrant-met-docker/</guid>
+  <description><![CDATA[
+     <div class="img thumbnail pull-right">
+    <img src="http://betacz.com/images/articles/docker/docker-top-logo.png" />
+    
+</div>
+
+<div class="img thumbnail pull-left">
+    <img src="http://betacz.com/images/articles/vagrant/logo_vagrant.png" />
+    
+</div>
+
+<p>使用<strong>Vagrant</strong>来为项目提供统一的开发与测试环境，已成为了许多开发团队的标准流程。Vagrant能够为开发者在本机上提供与生产环境几乎一致的开发环境,也能为使用不同操作系统平台（Linux，MAC OS，Windows）的团队成员提供一致开发体验。</p>
+
+<div class='panel seriesNote'><p>本文是《<a href='http://betacz.com/series/当流浪者(Vagrant)遇见码头工人(Docker)'>当流浪者(Vagrant)遇见码头工人(Docker)</a>》系列中的第1篇（共2篇）。</p><ul><li> 后一篇 - <a href='http://betacz.com/2014/05/21/vagrant-met-docker-2/'>当流浪者(Vagrant)遇见码头工人(Docker): 实战</a></li></ul></div>
+
+<h2>背景</h2>
+
+<hr>
+
+<p>相对于Vagrant在开发中的使用，<strong>Docker</strong>则更关注于生产环境的虚拟化。它将应用及其依赖的其它应用，每一个都独立包装成独立自足的容器，其中包括特定的操作系统及其依赖的所有软件，解决了以前在生产部署中困扰我们的诸多难题。因此，自它发布以来，虽然还没有达到官方认为稳定的1.0版本，但还是有越来越多的人使用它来部署自己的应用。</p>
+
+<p>一般来说，在Vagrant中会使用VirtualBox等传统的虚拟机软件来作为提供者，以创建一个与生产环境相同的开发机器。这样在开发阶段就可以遇到并解决很多与生产环境相关的问题。然而，随着Docker的异军突起，这种方式开始变得尴尬，因为我们发现开发环境已经不能匹配生产环境了: 在开发时，程序使用本机的网络，与数据库直接通过本机端口连接，直接访问着主机的文件系统和其它资源并与其它程序共享这些资源；在生产中，程序则在Docker容器中运行，通过桥接网络与外界通信，与数据库通于Docker link方式进行连接，通过映射或数据容器访问主机资源且不与其它程序共享。另一方面，应用部署过程也与以前有了很大不同：以前是通过FTP，HTTP或SSH、Git等方式将代码上传至服务器再进行版本切换，应用重启等工作，在此过程中可能还要在生产服务器上进行诸如库文件更新等额外工作。而现在则是将应用直接打包成一个Docker镜像并推送到中心仓库，然后在服务器上下拉并直接启动最新的镜像。</p>
+
+<h2>解决方案</h2>
+
+<hr>
+
+<p>Vagrant的开发者很快意识到了这个问题。</p>
+
+<p>在1.4版本中，Vagrant引入了<a href="http://docs.vagrantup.com/v2/provisioning/docker.html">Docker Provision</a>。帮助开发者在虚拟机中自动安装Docker软件，并自动启动Docker容器。但此时，Vagrant对Docker的支持还是比较原始的。比如无法通过Vagrant的命令行直接管理Docker容器，也无法绕过虚拟机直接与容器通信。</p>
+
+<p>直到1.6版本发布，Vagrant终于引入<a href="http://docs.vagrantup.com/v2/docker/index.html">Docker provider</a>。至此，Docker才获得了与VirtrualBox，VMWare等传统虚拟机软件相等的地位。我们也才有可能在开发中使用Docker容器来构建与生产环境完全一致的开发测试环境。</p>
+
+<h2>优点与不足</h2>
+
+<hr>
+
+<p>使用Docker虚拟机作为开发环境至少有以下几个<strong>好处</strong>：</p>
+
+<ol>
+<li>节省磁盘空间： 因为Docker镜像具有共享与缓存机制，同时创建10个基于Ubuntu容器并不会比创建1个多花费多少空间。</li>
+<li>大幅减少内存与CPU占用: 传统虚拟机的明显缺点就是需要消耗大量内存与CPU，哪怕你只是启动了虚拟机，什么事情都不做，内存与CPU与照占不误。而Docker容器则轻量的多，基本上是应用使用多少内存，就占用多少内存，CPU的额外消耗也很少。</li>
+<li>性能提升： 传统虚拟机因为需要虚拟大部分硬件的关系，性能与主机有着较为明显的差距。而Docker则性能则与物理机相当接近。</li>
+<li>可以统一开发与部署环境。前提是你准备以Docker方式部署应用。</li>
+</ol>
+
+<p>然而，现实并不完美，Vagrant与Docker的结合并不是天衣无缝，一方面是Docker或Vagrant的问题，另一方面则是因为瓷器国的特色了。问题主要表现在以下几个方面：</p>
+
+<ol>
+<li>Docker目前只能运行在Linux 64bit的环境下，在其它平台上，Vagrant需要使用一个Host虚拟机来提供Docker的运行环境。因此，前面所说第2、3两个优点，对于使用Mac或Windows来开发的同学几乎不存在。</li>
+<li>以目前最新的1.6.2版本的Vagrant来说，其对于Docker provider的支持还有不少<a href="https://github.com/mitchellh/vagrant/issues?state=open">Bug</a>。</li>
+<li>因为伟大的墙存在，Vagrant默认的Docker Host VM基本上在国内处于不可用状态，需要自己创建这个虚拟机。</li>
+<li>使用Docker容器作为开发环境，与传统的虚拟机相比也有一些不便之处。</li>
+</ol>
+
+<h2>小结</h2>
+
+<hr>
+
+<p>在本篇中，笔者简要的介绍了Vagrant对Docker的支持情况。下一篇将以搭建一个Rails开发环境为例，介绍Docker provider的使用与技巧。</p>
+
+<h3>参考</h3>
+
+<ul>
+<li><a href="https://www.vagrantup.com/blog/feature-preview-vagrant-1-6-docker-dev-environments.html">Feature Preview: Docker-Based Development Environments</a></li>
+<li><a href="http://www.vagrantup.com/">Vagrant官方网站</a></li>
+<li><a href="https://www.docker.io/">Docker官方网站</a></li>
+</ul>
+
+  ]]></description>
+</item>
+
+
+</channel>
+</rss>
