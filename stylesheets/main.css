@@ -1,8 +1,7 @@
 body {
-	//font-family: '微软雅黑', 'SimHei', serif;
 	font-size: 16px;
 	line-height: 1.5em;
-	background: rgb(243, 243, 243);
+	/*background: rgb(243, 243, 243);*/
 }
 .navbar {
 	font-size: 18px;
@@ -18,16 +17,11 @@ a.navbar-brand {
 }
 .subbrand {
 	display: block;
-	//font-family: 'Roboto Slab', serif;
 	font-size: .5em;
 	font-style: italic;
 }
-h1, h2, h3, h4, h5, h6 {
-	//font-family: 'Roboto Slab', serif;
-}
 p {
 	line-height: 1.6em;
-	//font-family: 'Roboto Slab', serif;
 }
 blockquote p {
 	font-size: 16px;
@@ -57,7 +51,7 @@ blockquote p {
 }
 .entry-title a {
 	color: #40aa52;
-	//text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.6);
+  font-family: fantasy;
 }
 .entry-title a:hover {
 	color: #307742;
@@ -136,10 +130,10 @@ code, pre {
 	height: 250px;
 }
 .heroline {
-	background-color: #5e91bd;
-	border-bottom: 3px solid #357ebd;
-	/* border-top: 3px solid #357ebd;
-	*/
+	/*background-color: #5e91bd;*/
+	/*border-bottom: 3px solid #357ebd;*/
+	border-top: 3px solid #357ebd;
+	
 }
 .heroline .homeheader {
 	color: #fff;
@@ -150,8 +144,8 @@ code, pre {
 	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.4);
 }
 .heroline .herocontainer {
-	// background-color: #fff;
-	background-color: rgb(243, 243, 243);
+	/*background-color: rgb(243, 243, 243);*/
+  background-color: white;
 	border-radius: 6px;
 	padding: 15px;
 	margin-top: 15px;
@@ -202,8 +196,8 @@ i.icon-rss {
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 	font-weight: normal;
 	line-height: 1;
-	color: #ffffff;
-	background-color: #626262;
+	color: black;
+	background-color: whitesmoke;
 	border: 1px solid #151515;
 	-webkit-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 1px 0px rgba(255, 255, 255, 0.15);
 	-moz-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 1px 0px rgba(255, 255, 255, 0.15);
@@ -228,4 +222,12 @@ i.icon-rss {
 	color: #ccc;
 	padding: 0px;
 	font-size: 14px;
+}
+
+.navbar-inverse .navbar-nav>li>a {
+  color: whitesmoke;
+}
+
+.navbar-inverse .navbar-nav>li>a:hover {
+  color: lightseagreen;
 }

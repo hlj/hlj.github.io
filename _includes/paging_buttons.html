@@ -2,19 +2,19 @@
 <div id="paging">
 	{% if paginator.previous_page %}
 		{% if paginator.previous_page == 1 %}
-			<a href="{{paging_root}}" class="btn btn-default pull-left">&larr; 新的</a>
+			<a href="{{paging_root}}" class="btn btn-default pull-left">&larr; Newer</a>
 		{% else %}
-			<a href="{{paging_root}}page{{paginator.previous_page}}" class="btn btn-default pull-left">&larr; 新的</a>
+			<a href="{{paging_root}}page{{paginator.previous_page}}" class="btn btn-default pull-left">&larr; Newer</a>
 		{% endif %}
 	{% else %}
-			<a href="#" class="btn btn-default pull-left" disabled="disabled">&larr; 新的</a>
+			<a href="#" class="btn btn-default pull-left" disabled="disabled">&larr; Newer</a>
 		</li>
 	{% endif %}
 
 {% if paginator.next_page %}
-	<a href="{{paging_root}}page{{paginator.next_page}}" class="btn btn-default pull-right">旧的  &rarr;</a>
+	<a href="{{paging_root}}page{{paginator.next_page}}" class="btn btn-default pull-right">Older  &rarr;</a>
 {% else %}
-	<a href="#" class="btn btn-default pull-right" disabled="disabled">旧的  &rarr;</a>
+	<a href="#" class="btn btn-default pull-right" disabled="disabled">Older  &rarr;</a>
 {% endif %}
 
 
