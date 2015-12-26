@@ -3,4 +3,4 @@ pygments: true
 markdown: redcarpet
 permalink: /:year/:month/:day/:title/
 url: http://betacz.com
-exclude: [README.md, Gemfile, Gemfile.lock, Rakefile]
+exclude: [README.md, Gemfile, Gemfile.lock, Rakefile, '.ruby-gemset','.ruby-version']
